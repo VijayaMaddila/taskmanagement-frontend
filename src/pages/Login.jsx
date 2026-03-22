@@ -194,6 +194,10 @@ function Login() {
         <p className="auth-link">
           Don't have an account? <Link to="/register">Register here</Link>
         </p>
+
+        <div className="back-home">
+          <Link to="/" className="back-home-btn">← Back to Home</Link>
+        </div>
       </div>
     </div>
   );

@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { canManageProjects } from "../utils/auth";
-import { fetchAll, apiGet, apiPost, apiPut, apiDelete } from "../utils/api";
+import { fetchAll, apiPost, apiPut, apiDelete } from "../utils/api";
 import Sidebar from "../components/Sidebar";
+import ConfirmModal from "../components/ConfirmModal";
 import "./Tasks.css";
 
 // Read the stored user from localStorage
@@ -18,25 +20,12 @@ function timeAgo(dateStr) {
   if (!dateStr) return "";
 
   const millisecondsDiff = Date.now() - new Date(dateStr).getTime();
-  const minutesAgo = Math.floor(millisecondsDiff / 60000);
+  const daysDiff = Math.floor(millisecondsDiff / 86400000);
 
-  if (minutesAgo < 1) return "just now";
-  if (minutesAgo < 60) return `${minutesAgo} minute${minutesAgo !== 1 ? "s" : ""} ago`;
-
-  const hoursAgo = Math.floor(minutesAgo / 60);
-  if (hoursAgo < 24) return `${hoursAgo} hour${hoursAgo !== 1 ? "s" : ""} ago`;
-
-  const daysAgo = Math.floor(hoursAgo / 24);
-  if (daysAgo < 7) return `${daysAgo} day${daysAgo !== 1 ? "s" : ""} ago`;
-
-  const weeksAgo = Math.floor(daysAgo / 7);
-  if (weeksAgo < 4) return `${weeksAgo} week${weeksAgo !== 1 ? "s" : ""} ago`;
-
-  const monthsAgo = Math.floor(daysAgo / 30);
-  if (monthsAgo < 12) return `${monthsAgo} month${monthsAgo !== 1 ? "s" : ""} ago`;
-
-  const yearsAgo = Math.floor(monthsAgo / 12);
-  return `${yearsAgo} year${yearsAgo !== 1 ? "s" : ""} ago`;
+  if (daysDiff === 0) return "Today";
+  if (daysDiff === 1) return "Yesterday";
+  if (daysDiff < 30) return `${daysDiff}d ago`;
+  return `${Math.floor(daysDiff / 30)}mo ago`;
 }
 
 // The four Kanban columns
@@ -86,9 +75,7 @@ const USER_STATUS_FLOW = {
 function TaskCard({ task, onEdit, onDelete, canManage, isOwner }) {
   const dueDate = task.dueDate ? new Date(task.dueDate) : null;
   const isOverdue = dueDate && dueDate < new Date() && task.status !== "DONE";
-  const dueDateStr = dueDate
-    ? dueDate.toLocaleDateString("en-US", { month: "short", day: "numeric" })
-    : null;
+  const dueDateStr = task.dueDate ? timeAgo(task.dueDate) : null;
 
   const assigneeName =
     task.assigneeName ||
@@ -185,10 +172,11 @@ function Tasks() {
   const [projects, setProjects] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [slackMembersCache, setSlackMembersCache] = useState({}); // projectId -> members[]
+  const [projectMembersCache, setProjectMembersCache] = useState({}); // projectId -> [{id,name}]
 
   const [showModal, setShowModal] = useState(false);
   const [showDrawer, setShowDrawer] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null); // taskId
   const [drawerTask, setDrawerTask] = useState(null);
 
   const [comments, setComments] = useState([]);
@@ -197,11 +185,11 @@ function Tasks() {
 
   const [editingTask, setEditingTask] = useState(null);
   const [formData, setFormData] = useState(emptyForm);
-  const [filterProject, setFilterProject] = useState("");
+  const [searchParams] = useSearchParams();
+  const [filterProject, setFilterProject] = useState(searchParams.get("project") || "");
   const [filterPriority, setFilterPriority] = useState("");
   const [filterAssignee, setFilterAssignee] = useState("");
   const [filterSearch, setFilterSearch] = useState("");
-  const [myTasksOnly, setMyTasksOnly] = useState(false);
   const [dragOverCol, setDragOverCol] = useState(null);
   const [view, setView] = useState("kanban");
 
@@ -215,39 +203,124 @@ function Tasks() {
     loadAllData();
   }, []);
 
+  // Reload tasks and project members whenever the selected project changes.
+  // Also depends on projects.length so it retries if projects weren't loaded yet
+  // when the user first clicked a project tab (race condition on initial load).
+  useEffect(() => {
+    if (projects.length > 0) {
+      if (filterProject) {
+        loadTasks(filterProject);
+        loadProjectMembers(filterProject);
+      } else {
+        // "All Projects" selected — reload all workspace tasks
+        loadAllData();
+      }
+    }
+  }, [filterProject, projects.length]);
+
+  const normalizeTasks = (taskList) =>
+    taskList.map((task) => ({
+      ...task,
+      projectId:   task.projectId   ?? task.project?.id       ?? null,
+      assignedToId:task.assignedToId?? task.assignedTo?.id    ?? null,
+      assigneeName:task.assigneeName?? task.assignedTo?.username ?? task.assignedTo?.name ?? null,
+      projectName: task.projectName ?? task.project?.name     ?? null,
+      status:   task.status   ?? "TODO",
+      priority: task.priority ?? "MEDIUM",
+    }));
+
+  const injectProjectInfo = (normalizedTasks, projectList) =>
+    normalizedTasks.map((t) => {
+      if (t.projectId && t.projectName) return t;
+      const proj = projectList.find((p) => String(p.id) === String(t.projectId));
+      return {
+        ...t,
+        projectName: t.projectName || proj?.name || null,
+      };
+    });
+
+  const getTasksEndpoint = (projectId) => {
+    if (projectId) return `/api/tasks/project/${projectId}`;
+    if (!canManage) return `/api/tasks/assignee/${user.id}`;
+    return "/api/tasks";
+  };
+
+  const loadTasks = async (projectId) => {
+    setLoading(true);
+    try {
+      const endpoint = getTasksEndpoint(projectId);
+      const taskList = await fetchAll(endpoint);
+      let normalized = normalizeTasks(taskList);
+      // If loading project-specific tasks, inject projectId/name in case backend omits them
+      if (projectId) {
+        const proj = projects.find((p) => String(p.id) === String(projectId));
+        normalized = normalized.map((t) => ({
+          ...t,
+          projectId: t.projectId ?? Number(projectId),
+          projectName: t.projectName ?? proj?.name ?? null,
+        }));
+      }
+      setTasks(injectProjectInfo(normalized, projects));
+    } catch (error) {
+      // fallback: filter from all tasks
+      try {
+        const taskList = await fetchAll("/api/tasks");
+        const normalized = normalizeTasks(taskList);
+        setTasks(projectId ? normalized.filter(t => String(t.projectId) === String(projectId)) : normalized);
+      } catch (e) { console.error(e); }
+    }
+    setLoading(false);
+  };
+
   const loadAllData = async () => {
     setLoading(true);
     try {
-      const [taskList, projectList, userList] = await Promise.all([
-        fetchAll("/api/tasks"),
+      const [allProjects, userList] = await Promise.all([
         fetchAll("/api/projects"),
         fetchAll("/api/users"),
       ]);
 
-      // Normalize task fields so we always have consistent property names
-      const normalizedTasks = taskList.map((task) => ({
-        ...task,
-        projectId: task.projectId ?? task.project?.id ?? null,
-        assignedToId: task.assignedToId ?? task.assignedTo?.id ?? null,
-        assigneeName:
-          task.assigneeName ??
-          task.assignedTo?.username ??
-          task.assignedTo?.name ??
-          null,
-        projectName: task.projectName ?? task.project?.name ?? null,
-        status: task.status ?? "TODO",
-        priority: task.priority ?? "MEDIUM",
-      }));
+      // Filter projects to only those belonging to the current user
+      const myProjects = canManage
+        ? allProjects.filter((p) => String(p.createdById) === String(user.id))
+        : await (async () => {
+            const memberLists = await Promise.all(
+              allProjects.map((p) =>
+                fetchAll(`/api/projects/${p.id}/members`).catch(() => [])
+              )
+            );
+            return allProjects.filter((_, i) =>
+              memberLists[i].some(
+                (m) => String(m.userId ?? m.user?.id) === String(user.id)
+              )
+            );
+          })();
 
-      setTasks(normalizedTasks);
-      setProjects(projectList);
+      // Load tasks only for the user's projects
+      const taskLists = await Promise.all(
+        myProjects.map((p) =>
+          fetchAll(`/api/tasks/project/${p.id}`)
+            .then((tasks) =>
+              tasks.map((t) => ({ ...t, projectId: t.projectId ?? p.id, projectName: t.projectName ?? p.name }))
+            )
+            .catch(() => [])
+        )
+      );
 
-      const normalizedUsers = userList.map((u) => ({
+      const allTasks = taskLists.flat();
+      const normalized = normalizeTasks(allTasks);
+
+      setTasks(normalized);
+      setProjects(myProjects);
+      setUsers(userList.map((u) => ({
         id: u.id,
         name: u.name || u.username || u.email || `User #${u.id}`,
-      }));
-      setUsers(normalizedUsers);
+      })));
 
+      // Auto-select first project if none is selected via URL param
+      if (!filterProject && myProjects.length > 0) {
+        setFilterProject(String(myProjects[0].id));
+      }
     } catch (error) {
       console.error(error);
     }
@@ -273,9 +346,10 @@ function Tasks() {
     }).catch(() => {});
   };
 
-  const openCreate = () => {
+  const openCreate = (overrides = {}) => {
     setEditingTask(null);
-    setFormData(emptyForm);
+    setFormData({ ...emptyForm, ...overrides });
+    if (overrides.projectId) loadProjectMembers(overrides.projectId);
     setShowModal(true);
   };
 
@@ -287,13 +361,14 @@ function Tasks() {
 
   // Open the task detail drawer and load its comments and activity
   const openEdit = (task) => {
+    const pid = task.projectId ?? task.project?.id;
     setDrawerTask(task);
     setFormData({
       title: task.title,
       description: task.description || "",
       priority: task.priority || "MEDIUM",
       status: task.status || "TODO",
-      projectId: task.projectId ?? task.project?.id ?? "",
+      projectId: pid ?? "",
       assignedToId: task.assignedToId ?? task.assignedTo?.id ?? "",
       dueDate: task.dueDate ? task.dueDate.split("T")[0] : "",
     });
@@ -304,12 +379,14 @@ function Tasks() {
     setActivityLogs([]);
     setShowDrawer(true);
 
-    apiGet(`/api/comments/task/${task.id}`)
-      .then((response) => (response.ok ? response.json() : []))
+    fetchAll(`/api/comments/task/${task.id}`)
       .then((commentList) => setComments(commentList))
       .catch(() => {});
 
     fetchActivityLogs(task.id);
+
+    // Load team members for this task's project (for the assignee dropdown)
+    if (pid) loadProjectMembers(pid);
   };
 
   const closeDrawer = () => {
@@ -324,8 +401,7 @@ function Tasks() {
   };
 
   const fetchComments = (taskId) => {
-    apiGet(`/api/comments/task/${taskId}`)
-      .then((response) => (response.ok ? response.json() : []))
+    fetchAll(`/api/comments/task/${taskId}`)
       .then((commentList) => setComments(commentList))
       .catch(() => {});
   };
@@ -461,9 +537,9 @@ function Tasks() {
     }
   };
 
-  const handleDelete = async (taskId) => {
-    if (!confirm("Delete this task?")) return;
-
+  const handleDelete = async () => {
+    const taskId = deleteTarget;
+    setDeleteTarget(null);
     try {
       const response = await apiDelete(`/api/tasks/${taskId}`);
 
@@ -517,10 +593,6 @@ function Tasks() {
       return false;
     }
 
-    if (myTasksOnly && String(task.assignedToId) !== String(user.id)) {
-      return false;
-    }
-
     if (filterProject && String(task.projectId) !== String(filterProject)) {
       return false;
     }
@@ -543,27 +615,37 @@ function Tasks() {
     return true;
   });
 
-  // Return users who have at least one task in a project.
-  // Falls back to all users when no project is selected.
-  const getUsersForProject = (projectId) => {
-    if (!projectId) return users;
-    const assigneeIds = new Set(
-      tasks
-        .filter((t) => String(t.projectId) === String(projectId) && t.assignedToId != null)
-        .map((t) => String(t.assignedToId))
-    );
-    return users.filter((u) => assigneeIds.has(String(u.id)));
+  // Fetch team members for a project and cache them (keyed by projectId)
+  const loadProjectMembers = async (projectId) => {
+    if (!projectId || projectMembersCache[projectId]) return;
+    try {
+      const members = await fetchAll(`/api/projects/${projectId}/members`);
+      const mapped = members.map(m => ({
+        id:   m.user?.id   ?? m.userId,
+        name: m.user?.username || m.user?.name || m.user?.email || `User #${m.user?.id ?? m.userId}`,
+      }));
+      setProjectMembersCache(prev => ({ ...prev, [projectId]: mapped }));
+    } catch {
+      setProjectMembersCache(prev => ({ ...prev, [projectId]: [] }));
+    }
   };
 
-  const hasActiveFilters =
-    filterProject || filterPriority || filterAssignee || filterSearch || myTasksOnly;
+  // Return the team members for the selected project.
+  // Falls back to all users when no project is selected or members not yet loaded.
+  const getUsersForProject = (projectId) => {
+    if (!projectId) return users;
+    const members = projectMembersCache[projectId];
+    if (members && members.length > 0) return members;
+    return users;
+  };
+
+  const hasActiveFilters = filterProject || filterPriority || filterAssignee || filterSearch;
 
   const clearFilters = () => {
     setFilterProject("");
     setFilterPriority("");
     setFilterAssignee("");
     setFilterSearch("");
-    setMyTasksOnly(false);
   };
 
   // Get all tasks for a specific Kanban column
@@ -590,11 +672,7 @@ function Tasks() {
             {canManage && (
               <button
                 className="tk-create-btn"
-                onClick={() => {
-                  setFormData(emptyForm);
-                  setEditingTask(null);
-                  setShowModal(true);
-                }}
+                onClick={() => openCreate(filterProject ? { projectId: filterProject } : {})}
               >
                 <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
                   <path d="M6 1v10M1 6h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
@@ -620,18 +698,6 @@ function Tasks() {
             />
           </div>
 
-          {/* "My Tasks" toggle — only shown to managers */}
-          {canManage && (
-            <button
-              className={`tk-mytasks-btn${myTasksOnly ? " active" : ""}`}
-              onClick={() => setMyTasksOnly((current) => !current)}
-            >
-              <span className="tk-mytasks-avatar">
-                {(user.name || user.username || "U").slice(0, 1).toUpperCase()}
-              </span>
-              My Tasks
-            </button>
-          )}
 
           <div className="tk-filter-divider" />
 
@@ -640,10 +706,10 @@ function Tasks() {
             value={filterProject}
             onChange={(e) => setFilterProject(e.target.value)}
           >
-            <option value="">Project</option>
-            {projects.map((project) => (
-              <option key={project.id} value={project.id}>
-                {project.name}
+            <option value="">All Projects</option>
+            {projects.map((p) => (
+              <option key={p.id} value={String(p.id)}>
+                {p.name}
               </option>
             ))}
           </select>
@@ -784,11 +850,7 @@ function Tasks() {
                 {canManage && (
                   <button
                     className="tk-col-create"
-                    onClick={() => {
-                      setFormData({ ...emptyForm, status: column.id });
-                      setEditingTask(null);
-                      setShowModal(true);
-                    }}
+                    onClick={() => openCreate({ status: column.id })}
                   >
                     <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
                       <path d="M6 1v10M1 6h10" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
@@ -846,13 +908,13 @@ function Tasks() {
                 </span>
 
                 <span className="tk-due">
-                  {task.dueDate ? task.dueDate.split("T")[0] : "—"}
+                  {task.dueDate ? timeAgo(task.dueDate) : "—"}
                 </span>
 
                 {/* Stop click from opening the drawer when clicking the delete button */}
                 <span onClick={(e) => e.stopPropagation()}>
                   {canManage && (
-                    <button className="tk-del-btn" onClick={() => handleDelete(task.id)}>
+                    <button className="tk-del-btn" onClick={() => setDeleteTarget(task.id)}>
                       Delete
                     </button>
                   )}
@@ -885,7 +947,7 @@ function Tasks() {
                     title="Delete task"
                     onClick={() => {
                       closeDrawer();
-                      handleDelete(drawerTask.id);
+                      setDeleteTarget(drawerTask.id);
                     }}
                   >
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -991,9 +1053,7 @@ function Tasks() {
                                   <div className="tk-comment-meta">
                                     <span className="tk-comment-author">{commenterName}</span>
                                     <span className="tk-comment-time">
-                                      {commentItem.createdAt
-                                        ? new Date(commentItem.createdAt).toLocaleString()
-                                        : ""}
+                                      {commentItem.createdAt ? timeAgo(commentItem.createdAt) : ""}
                                     </span>
                                   </div>
 
@@ -1227,6 +1287,13 @@ function Tasks() {
                       {drawerTask.assigneeName || "Unassigned"}
                     </span>
                   )}
+                  {(() => {
+                    const pid = drawerTask.projectId ?? drawerTask.project?.id;
+                    const proj = projects.find(p => String(p.id) === String(pid));
+                    return proj?.team?.name ? (
+                      <span className="tk-assignee-team">{proj.team.name}</span>
+                    ) : null;
+                  })()}
                 </div>
 
                 {/* Priority */}
@@ -1282,7 +1349,7 @@ function Tasks() {
                     />
                   ) : (
                     <span className={`tk-drawer-detail-value${drawerTask.dueDate ? " tk-due-value" : ""}`}>
-                      {drawerTask.dueDate ? drawerTask.dueDate.split("T")[0] : "None"}
+                      {drawerTask.dueDate ? timeAgo(drawerTask.dueDate) : "None"}
                     </span>
                   )}
                 </div>
@@ -1375,7 +1442,11 @@ function Tasks() {
                     id="task-project"
                     name="projectId"
                     value={formData.projectId}
-                    onChange={(e) => setFormData({ ...formData, projectId: e.target.value, assignedToId: "" })}
+                    onChange={(e) => {
+                      const pid = e.target.value;
+                      setFormData({ ...formData, projectId: pid, assignedToId: "" });
+                      if (pid) loadProjectMembers(pid);
+                    }}
                   >
                     <option value="">Select project</option>
                     {projects.map((project) => (
@@ -1422,6 +1493,15 @@ function Tasks() {
             </form>
           </div>
         </div>
+      )}
+
+      {deleteTarget && (
+        <ConfirmModal
+          title="Delete Task"
+          message="Are you sure you want to delete this task? This action cannot be undone."
+          onConfirm={handleDelete}
+          onCancel={() => setDeleteTarget(null)}
+        />
       )}
     </div>
   );

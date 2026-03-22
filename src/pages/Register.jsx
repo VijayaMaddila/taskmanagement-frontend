@@ -63,7 +63,13 @@ function Register() {
     setError("");
 
     try {
-      const response = await fetch(`${BASE_URL}/api/auth/register`, {
+      // Pass the invite token as a query param so the backend creates the
+      // team entry automatically during registration
+      const registerUrl = inviteToken
+        ? `${BASE_URL}/api/auth/register?token=${encodeURIComponent(inviteToken)}`
+        : `${BASE_URL}/api/auth/register`;
+
+      const response = await fetch(registerUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
@@ -72,18 +78,6 @@ function Register() {
       if (!response.ok) {
         const errorMessage = await response.text();
         throw new Error(errorMessage || "Registration failed");
-      }
-
-      const newUser = await response.json();
-
-      // If this registration came from an invite, accept the invite
-      if (inviteToken && newUser?.id) {
-        await fetch(
-          `${BASE_URL}/api/teams/invite/accept?token=${encodeURIComponent(inviteToken)}&userId=${newUser.id}`,
-          { method: "POST" }
-        ).catch(() => {
-          // Non-blocking: navigate to login even if accept fails
-        });
       }
 
       navigate("/login");
@@ -185,6 +179,10 @@ function Register() {
         <p className="auth-link">
           Already have an account? <Link to="/login">Login here</Link>
         </p>
+
+        <div className="back-home">
+          <Link to="/" className="back-home-btn">← Back to Home</Link>
+        </div>
       </div>
     </div>
   );

@@ -183,3 +183,56 @@
 }
 
 .auth-link a:hover { color: #4f46e5; }
+
+.back-home {
+  text-align: center;
+  margin-top: 16px;
+}
+
+.back-home-btn {
+  display: inline-block;
+  padding: 9px 20px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  color: #6b7280;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s;
+  background: #f9fafb;
+}
+
+.back-home-btn:hover {
+  background: #f3f4f6;
+  border-color: #d1d5db;
+  color: #374151;
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .auth-container {
+    padding: 16px;
+  }
+  .auth-container::before,
+  .auth-container::after {
+    width: 260px;
+    height: 260px;
+  }
+  .auth-card {
+    padding: 28px 20px 24px;
+  }
+}
+
+@media (max-width: 480px) {
+  .auth-card {
+    padding: 24px 16px 20px;
+    border-radius: 14px;
+  }
+  .auth-card h2 {
+    font-size: 20px;
+  }
+  .auth-container::before,
+  .auth-container::after {
+    display: none;
+  }
+}

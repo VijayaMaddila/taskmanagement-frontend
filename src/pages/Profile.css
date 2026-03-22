@@ -1,0 +1,293 @@
+/* ── Layout ── */
+.pf-layout {
+  min-height: 100vh;
+  background: #f8f9fb;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: #111827;
+}
+
+.pf-main {
+  padding-top: 56px;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* ── Page header ── */
+.pf-header {
+  display: flex;
+  align-items: center;
+  padding: 28px 32px 20px;
+  background: #fff;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.pf-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 4px;
+  letter-spacing: -0.4px;
+}
+
+.pf-sub {
+  font-size: 13px;
+  color: #9ca3af;
+  margin: 0;
+}
+
+/* ── Content area ── */
+.pf-content {
+  padding: 28px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 860px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* ── Loading ── */
+.pf-loading {
+  padding: 28px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 860px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.pf-skeleton-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.pf-skeleton {
+  border-radius: 12px;
+  background: linear-gradient(90deg, #ebebf3 25%, #e0e0ea 50%, #ebebf3 75%);
+  background-size: 200% 100%;
+  animation: pf-shimmer 1.4s infinite;
+}
+
+.pf-skeleton--hero { height: 120px; }
+.pf-skeleton--card { height: 260px; }
+
+@keyframes pf-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ── Hero banner ── */
+.pf-hero {
+  position: relative;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(99,102,241,0.15);
+}
+
+.pf-hero-bg {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, #6366f1 0%, #a855f7 60%, #ec4899 100%);
+}
+
+.pf-hero-content {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 28px 28px;
+}
+
+.pf-hero-avatar {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 24px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 3px solid rgba(255,255,255,0.35);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.18);
+}
+
+.pf-hero-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.pf-hero-name {
+  font-size: 20px;
+  font-weight: 800;
+  color: #fff;
+  margin: 0;
+  letter-spacing: -0.3px;
+}
+
+.pf-hero-email {
+  font-size: 13px;
+  color: rgba(255,255,255,0.78);
+}
+
+.pf-hero-role {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 3px 11px;
+  border-radius: 99px;
+  border: 1px solid rgba(255,255,255,0.35);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  background: rgba(255,255,255,0.15);
+  color: #fff;
+  width: fit-content;
+}
+
+/* ── Two-column grid ── */
+.pf-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+@media (max-width: 680px) {
+  .pf-grid { grid-template-columns: 1fr; }
+  .pf-content { padding: 20px 16px; }
+  .pf-header  { padding: 20px 16px 16px; }
+}
+
+/* ── Card ── */
+.pf-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 22px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.pf-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.pf-card-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.pf-card-icon--indigo { background: #eef2ff; color: #6366f1; }
+.pf-card-icon--purple { background: #faf5ff; color: #a855f7; }
+
+.pf-card-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+/* ── Form ── */
+.pf-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  flex: 1;
+}
+
+.pf-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.pf-form-group label {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #374151;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.pf-input-wrap {
+  position: relative;
+}
+
+.pf-input-icon {
+  position: absolute;
+  left: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #9ca3af;
+  pointer-events: none;
+}
+
+.pf-input-wrap input {
+  width: 100%;
+  padding: 9px 12px 9px 34px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 13.5px;
+  color: #111827;
+  background: #fafafa;
+  outline: none;
+  box-sizing: border-box;
+  font-family: inherit;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+}
+
+.pf-input-wrap input:focus {
+  border-color: #6366f1;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(99,102,241,0.1);
+}
+
+/* ── Buttons ── */
+.pf-btn-primary {
+  padding: 9px 0;
+  width: 100%;
+  background: #6366f1;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s;
+  margin-top: auto;
+}
+
+.pf-btn-primary:hover    { background: #4f46e5; }
+.pf-btn-primary:disabled { background: #a5b4fc; cursor: not-allowed; }
+
+.pf-btn-purple           { background: #a855f7; }
+.pf-btn-purple:hover     { background: #9333ea; }
+.pf-btn-purple:disabled  { background: #d8b4fe; cursor: not-allowed; }
+
+/* ── Messages ── */
+.pf-msg {
+  font-size: 12.5px;
+  padding: 9px 13px;
+  border-radius: 8px;
+  border: 1px solid;
+}
+
+.pf-msg--success { color: #059669; background: #d1fae5; border-color: #6ee7b7; }
+.pf-msg--error   { color: #dc2626; background: #fef2f2; border-color: #fecaca; }

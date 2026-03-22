@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { canManageProjects, hasRole } from "../utils/auth";
+import { canManageProjects } from "../utils/auth";
 import { fetchAll } from "../utils/api";
 import Sidebar from "../components/Sidebar";
 import "./Dashboard.css";
@@ -14,17 +14,6 @@ function getStoredUser() {
   }
 }
 
-// Get initials from a name
-function getInitials(name = "") {
-  const initials = name
-    .split(" ")
-    .map((word) => word[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
-
-  return initials || "U";
-}
 
 const PROJECT_COLORS = [
   "#6366f1",
@@ -41,7 +30,6 @@ function Dashboard() {
   const user = getStoredUser();
   const userName = user.name || "My Account";
   const canManage = canManageProjects();
-  const isAdmin = hasRole("ADMIN");
 
   const [stats, setStats] = useState(null);
   const [recentTasks, setRecentTasks] = useState([]);
@@ -54,11 +42,8 @@ function Dashboard() {
   useEffect(() => {
     const loadDashboardData = async () => {
       try {
-        const [statsResponse, taskList, projectList] = await Promise.all([
-          fetch("http://localhost:8080/api/dashboard/stats", {
-            headers: authHeaders,
-          }),
-          fetchAll("/api/tasks"),
+        const [statsResponse, allProjects] = await Promise.all([
+          fetch("http://localhost:8080/api/dashboard/stats", { headers: authHeaders }),
           fetchAll("/api/projects"),
         ]);
 
@@ -67,19 +52,43 @@ function Dashboard() {
           setStats(statsData);
         }
 
-        let visibleTasks;
-        if (isAdmin) {
-          visibleTasks = taskList;
-        } else {
-          visibleTasks = taskList.filter((task) => {
-            const assignedId = task.assignedToId ?? task.assignedTo?.id;
-            return String(assignedId) === String(user.id);
-          });
-        }
+        // Filter to workspace projects only (created by this admin)
+        const myProjects = allProjects.filter(
+          (p) => String(p.createdById) === String(user.id)
+        );
 
-        const fiveMostRecentTasks = visibleTasks.slice(0, 5);
-        setRecentTasks(fiveMostRecentTasks);
-        setProjects(projectList);
+        // Load tasks for each workspace project
+        const taskLists = await Promise.all(
+          myProjects.map((p) =>
+            fetchAll(`/api/tasks/project/${p.id}`)
+              .then((tasks) =>
+                tasks.map((t) => ({
+                  ...t,
+                  projectId: t.projectId ?? p.id,
+                  projectName: t.projectName ?? p.name,
+                }))
+              )
+              .catch(() => [])
+          )
+        );
+
+        const allTasks = taskLists.flat();
+
+        // 5 most recent tasks
+        setRecentTasks(allTasks.slice(0, 5));
+
+        // Enrich projects with task counts
+        const enrichedProjects = myProjects.map((project, i) => {
+          const projectTasks = taskLists[i] ?? [];
+          const total = projectTasks.length;
+          const done = projectTasks.filter((t) => t.status === "DONE").length;
+          return {
+            ...project,
+            taskCount: total,
+            progress: total > 0 ? Math.round((done / total) * 100) : 0,
+          };
+        });
+        setProjects(enrichedProjects);
       } catch (fetchError) {
         console.error(fetchError);
       }
@@ -90,36 +99,56 @@ function Dashboard() {
     loadDashboardData();
   }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    navigate("/login");
-  };
-
-  const statCards = [
+const statCards = [
     {
       label: "Total Projects",
       value: stats?.totalProjects ?? "—",
-      icon: "📁",
+      icon: (
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <rect x="2" y="5" width="16" height="12" rx="2" stroke="currentColor" strokeWidth="1.5"/>
+          <path d="M2 8h16" stroke="currentColor" strokeWidth="1.5"/>
+          <path d="M6 5V4a2 2 0 012-2h4a2 2 0 012 2v1" stroke="currentColor" strokeWidth="1.5"/>
+        </svg>
+      ),
       color: "#6366f1",
+      bg: "#eef2ff",
     },
     {
       label: "Open Issues",
       value: stats?.openIssues ?? stats?.totalTasks ?? "—",
-      icon: "🔴",
+      icon: (
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <circle cx="10" cy="10" r="7.5" stroke="currentColor" strokeWidth="1.5"/>
+          <path d="M10 6.5v4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+          <circle cx="10" cy="13" r="0.9" fill="currentColor"/>
+        </svg>
+      ),
       color: "#ef4444",
+      bg: "#fef2f2",
     },
     {
       label: "In Progress",
       value: stats?.inProgress ?? stats?.inProgressTasks ?? "—",
-      icon: "🔄",
+      icon: (
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <circle cx="10" cy="10" r="7.5" stroke="currentColor" strokeWidth="1.5" strokeDasharray="3 2"/>
+          <path d="M10 6v4l2.5 2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      ),
       color: "#f97316",
+      bg: "#fff7ed",
     },
     {
       label: "Completed",
       value: stats?.completed ?? stats?.completedTasks ?? "—",
-      icon: "✅",
+      icon: (
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <circle cx="10" cy="10" r="7.5" stroke="currentColor" strokeWidth="1.5"/>
+          <path d="M6.5 10l2.5 2.5 4.5-4.5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      ),
       color: "#22c55e",
+      bg: "#f0fdf4",
     },
   ];
   const getStatusCssClass = (statusString = "") => {
@@ -169,7 +198,12 @@ function Dashboard() {
             <div key={index} className="db-stat-card">
               <div className="db-stat-top">
                 <span className="db-stat-label">{statCard.label}</span>
-                <span className="db-stat-icon">{statCard.icon}</span>
+                <span
+                  className="db-stat-icon"
+                  style={{ background: statCard.bg, color: statCard.color }}
+                >
+                  {statCard.icon}
+                </span>
               </div>
               <div className="db-stat-value" style={{ color: statCard.color }}>
                 {loading ? <span className="db-skeleton" /> : statCard.value}

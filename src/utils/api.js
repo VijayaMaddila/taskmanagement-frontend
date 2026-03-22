@@ -13,7 +13,7 @@ function authHeader() {
 
 // Fetch one page of results from a paginated API endpoint
 // Returns: { content: [...], totalPages: 3, totalElements: 120 }
-export async function fetchPage(path, page = 0, size = 50) {
+export async function fetchPage(path, page = 0, size = 10) {
   const separator = path.includes('?') ? '&' : '?';
   const url = `${BASE_URL}${path}${separator}page=${page}&size=${size}`;
 
@@ -52,7 +52,7 @@ export async function fetchPage(path, page = 0, size = 50) {
 }
 
 // Fetch all pages and return a single flat array of all items
-export async function fetchAll(path, size = 100) {
+export async function fetchAll(path, size = 10) {
   const firstPage = await fetchPage(path, 0, size);
 
   if (firstPage.totalPages <= 1) {

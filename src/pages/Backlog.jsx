@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { fetchAll, apiGet, apiPost, apiPut, apiDelete } from "../utils/api";
+import { fetchAll } from "../utils/api";
 import { canManageProjects, hasRole } from "../utils/auth";
 import Sidebar from "../components/Sidebar";
 import "./Backlog.css";
@@ -83,23 +83,47 @@ export default function Backlog() {
     const loadAllData = async () => {
       setLoading(true);
       try {
-        const [taskList, projectList, userList] = await Promise.all([
-          fetchAll("/api/tasks"),
+        const [allProjects, userList] = await Promise.all([
           fetchAll("/api/projects"),
           fetchAll("/api/users"),
         ]);
 
+        // Filter to workspace projects only
+        let myProjects;
         if (isAdmin) {
-          setTasks(taskList);
+          myProjects = allProjects.filter(
+            (p) => String(p.createdById) === String(currentUser.id)
+          );
         } else {
-          const myTasks = taskList.filter((task) => {
-            const assignedId = task.assignedToId ?? task.assignedTo?.id;
-            return String(assignedId) === String(currentUser.id);
-          });
-          setTasks(myTasks);
+          const memberLists = await Promise.all(
+            allProjects.map((p) =>
+              fetchAll(`/api/projects/${p.id}/members`).catch(() => [])
+            )
+          );
+          myProjects = allProjects.filter((_, i) =>
+            memberLists[i].some(
+              (m) => String(m.userId ?? m.user?.id) === String(currentUser.id)
+            )
+          );
         }
 
-        setProjects(projectList);
+        // Load tasks only from workspace projects
+        const taskLists = await Promise.all(
+          myProjects.map((p) =>
+            fetchAll(`/api/tasks/project/${p.id}`)
+              .then((tasks) =>
+                tasks.map((t) => ({
+                  ...t,
+                  projectId: t.projectId ?? p.id,
+                  projectName: t.projectName ?? p.name,
+                }))
+              )
+              .catch(() => [])
+          )
+        );
+
+        setTasks(taskLists.flat());
+        setProjects(myProjects);
         setUsers(userList);
       } catch (error) {
         console.error("Failed to load backlog data:", error);
@@ -169,7 +193,6 @@ export default function Backlog() {
     );
   };
 
-  // Get 1-2 initials for the assignee avatar
   const getAssigneeInitials = (task) => {
     const fullName = getAssigneeName(task);
     if (fullName === "—") return "?";

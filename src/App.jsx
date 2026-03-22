@@ -13,6 +13,7 @@ import Tasks from "./pages/Tasks";
 import Backlog from "./pages/Backlog";
 import Team from "./pages/Team";
 import UserManagement from "./pages/UserManagement";
+import Profile from "./pages/Profile";
 
 import { isAuthenticated, hasRole } from "./utils/auth";
 
@@ -92,6 +93,16 @@ function App() {
           element={
             <ProtectedRoute>
               <Team />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Profile — any logged-in user */}
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <Profile />
             </ProtectedRoute>
           }
         />

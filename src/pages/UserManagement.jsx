@@ -3,10 +3,15 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { fetchAll, apiPost, apiPut, apiDelete } from '../utils/api';
+import { fetchAll, apiGet, apiPost, apiPut, apiDelete } from '../utils/api';
 import { isAuthenticated, hasRole } from '../utils/auth';
 import Sidebar from '../components/Sidebar';
 import './UserManagement.css';
+
+function getStoredUser() {
+  try { return JSON.parse(localStorage.getItem('user')) || {}; }
+  catch { return {}; }
+}
 
 // Get 1-2 uppercase initials from a display name (e.g. "Jane Doe" → "JD")
 function getInitials(name = '') {
@@ -48,17 +53,38 @@ export default function UserManagement() {
   const [filterRole, setFilterRole] = useState('');
 
   const [showModal, setShowModal] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null); // { id, username }
   const [editingUser, setEditingUser] = useState(null); // null = creating new user
 
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
-  // Load users from the API
+  // Load users belonging to projects created by the current admin
   const loadUsers = async () => {
     setLoading(true);
     try {
-      const userList = await fetchAll('/api/users');
+      const currentUser = getStoredUser();
+      const allProjects = await fetchAll('/api/projects');
+      const myProjects = allProjects.filter(p => String(p.createdById) === String(currentUser.id));
+
+      const memberLists = await Promise.all(
+        myProjects.map(p => fetchAll(`/api/projects/${p.id}/members`).catch(() => []))
+      );
+
+      // Deduplicate users by id across all project members
+      const seenIds = new Set();
+      const userList = [];
+      for (const members of memberLists) {
+        for (const m of members) {
+          const u = m.user ?? m;
+          if (u?.id && !seenIds.has(u.id)) {
+            seenIds.add(u.id);
+            userList.push({ ...u, role: m.role ?? u.role });
+          }
+        }
+      }
+
       setUsers(userList);
     } catch (loadError) {
       console.error('Failed to load users:', loadError);
@@ -90,17 +116,30 @@ export default function UserManagement() {
     setShowModal(true);
   };
 
-  // Open the modal to edit an existing user
-  const openEditModal = (userToEdit) => {
+  // Open the modal to edit an existing user — fetch fresh data by ID first
+  const openEditModal = async (userToEdit) => {
     setEditingUser(userToEdit);
-    setFormData({
-      username: userToEdit.username || '',
-      email:    userToEdit.email    || '',
-      password: '', // leave blank; only fill in if changing the password
-      role:     userToEdit.role     || 'DEVELOPER',
-    });
     setError('');
     setShowModal(true);
+
+    try {
+      const res = await apiGet(`/api/users/${userToEdit.id}`);
+      const fresh = res.ok ? await res.json() : userToEdit;
+      setEditingUser(fresh);
+      setFormData({
+        username: fresh.username || '',
+        email:    fresh.email    || '',
+        password: '',
+        role:     fresh.role     || 'DEVELOPER',
+      });
+    } catch {
+      setFormData({
+        username: userToEdit.username || '',
+        email:    userToEdit.email    || '',
+        password: '',
+        role:     userToEdit.role     || 'DEVELOPER',
+      });
+    }
   };
 
   const closeModal = () => {
@@ -157,18 +196,17 @@ export default function UserManagement() {
     setSaving(false);
   };
 
-  const handleDelete = async (userId, username) => {
-    const confirmed = confirm(`Delete user "${username}"? This cannot be undone.`);
-    if (!confirmed) return;
-
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
     try {
-      const response = await apiDelete(`/api/users/${userId}`);
+      const response = await apiDelete(`/api/users/${deleteTarget.id}`);
       if (response.ok || response.status === 204) {
         loadUsers();
       }
     } catch (deleteError) {
       console.error('Failed to delete user:', deleteError);
     }
+    setDeleteTarget(null);
   };
 
   // Get unique roles from the user list for the filter dropdown
@@ -320,7 +358,7 @@ export default function UserManagement() {
                         Edit
                       </button>
 
-                      <button className="um-action-btn um-delete-btn" onClick={() => handleDelete(user.id, user.username)}>
+                      <button className="um-action-btn um-delete-btn" onClick={() => setDeleteTarget({ id: user.id, username: user.username })}>
                         <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
                           <path d="M2 4h12M5 4V2h6v2M6 7v5M10 7v5M3 4l1 9h8l1-9" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
@@ -407,6 +445,27 @@ export default function UserManagement() {
               </div>
 
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteTarget && (
+        <div className="um-modal-overlay" onClick={() => setDeleteTarget(null)}>
+          <div className="um-modal um-delete-modal" onClick={e => e.stopPropagation()}>
+            <div className="um-delete-icon">
+              <svg width="28" height="28" viewBox="0 0 16 16" fill="none">
+                <path d="M2 4h12M5 4V2h6v2M6 7v5M10 7v5M3 4l1 9h8l1-9" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+            <h2 className="um-delete-title">Delete User</h2>
+            <p className="um-delete-msg">
+              Are you sure you want to delete <strong>{deleteTarget.username}</strong>? This action cannot be undone.
+            </p>
+            <div className="um-form-actions">
+              <button className="um-btn-secondary" onClick={() => setDeleteTarget(null)}>Cancel</button>
+              <button className="um-btn-danger" onClick={handleDelete}>Delete</button>
+            </div>
           </div>
         </div>
       )}

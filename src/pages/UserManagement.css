@@ -1,14 +1,12 @@
 /* ── User Management Layout ── */
 .um-layout {
-  display: flex;
   min-height: 100vh;
   background: #f8f9fb;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   color: #111827;
 }
 .um-main {
-  margin-left: 240px;
-  flex: 1;
+  padding-top: 56px;
   display: flex;
   flex-direction: column;
   min-width: 0;
@@ -327,3 +325,77 @@
 }
 .um-btn-primary:hover { background: #4f46e5; }
 .um-btn-primary:disabled { background: #a5b4fc; cursor: not-allowed; }
+
+/* ── Delete confirmation modal ── */
+.um-delete-modal {
+  text-align: center;
+  padding: 32px 28px 24px;
+  max-width: 380px;
+}
+
+.um-delete-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #fef2f2;
+  color: #ef4444;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+}
+
+.um-delete-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 8px;
+}
+
+.um-delete-msg {
+  font-size: 13.5px;
+  color: #6b7280;
+  margin: 0 0 24px;
+  line-height: 1.6;
+}
+
+.um-btn-danger {
+  padding: 9px 18px;
+  border: none;
+  border-radius: 7px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.um-btn-danger:hover { background: #dc2626; }
+
+/* ── Responsive ── */
+@media (max-width: 1024px) {
+  .um-table th:nth-child(4),
+  .um-table td:nth-child(4) { display: none; }
+}
+
+@media (max-width: 768px) {
+  .um-main { padding: calc(56px + 16px) 16px 16px; }
+  .um-header { flex-direction: column; align-items: flex-start; gap: 10px; padding: 0 0 16px; }
+  .um-header-actions { width: 100%; flex-wrap: wrap; gap: 8px; }
+  .um-search { width: 100%; }
+  .um-stats { flex-wrap: wrap; gap: 8px; }
+  .um-stat-card { flex: 1 1 calc(50% - 4px); }
+  .um-form-row { grid-template-columns: 1fr; }
+  .um-modal { width: calc(100vw - 24px); max-width: 100%; }
+  .um-table th:nth-child(3),
+  .um-table td:nth-child(3) { display: none; }
+  .um-table th:nth-child(5),
+  .um-table td:nth-child(5) { display: none; }
+}
+
+@media (max-width: 480px) {
+  .um-stat-card { flex: 1 1 100%; }
+  .um-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .um-form-actions { flex-direction: column; }
+  .um-btn-primary, .um-btn-secondary { width: 100%; text-align: center; }
+}
