@@ -194,7 +194,9 @@
 .tk-board::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
 
 .tk-column {
-  flex: 0 0 272px;
+  flex: 1 1 272px;
+  min-width: 240px;
+  max-width: 400px;
   background: #ffffff;
   border: 1px solid #e5e7eb;
   border-radius: 12px;
@@ -440,6 +442,9 @@
 
 .tk-list-unassigned { font-size: 0.82rem; color: #d1d5db; }
 
+/* Mobile meta row — hidden on desktop */
+.tk-list-mobile-meta { display: none; }
+
 /* Project cell */
 .tk-list-project {
   font-size: 0.8rem;
@@ -557,17 +562,17 @@
 
   /* Board — narrower columns, still horizontal scroll */
   .tk-board { padding: 12px 16px 24px; gap: 10px; }
-  .tk-column { flex: 0 0 248px; }
+  .tk-column { flex: 0 0 248px; max-width: 248px; }
 
-  /* List view — 4 columns: title, status, priority, due (hide assignee, project, action) */
+  /* List view — 3 columns: title, status, priority (hide due, assignee, project, action) */
   .tk-list-view { padding: 0 16px 24px; }
   .tk-list-header, .tk-list-row {
-    grid-template-columns: minmax(0, 1fr) 105px 85px 75px;
+    grid-template-columns: minmax(0, 1fr) 110px 90px;
     padding: 0 12px;
-    column-gap: 4px;
+    column-gap: 8px;
   }
-  .tk-list-header span:nth-child(n+5),
-  .tk-list-row span:nth-child(n+5) { display: none; }
+  .tk-list-header span:nth-child(n+4),
+  .tk-list-row span:nth-child(n+4) { display: none; }
 
   /* Drawer — bottom sheet */
   .tk-drawer-overlay { align-items: flex-end; padding: 0; }
@@ -655,16 +660,86 @@
   .tk-card { padding: 10px 11px; }
   .tk-card-title { font-size: 0.82rem; }
 
-  /* List view — 2 columns: title + status */
+  /* List view — card layout on small phones */
   .tk-list-view { padding: 0 12px 20px; }
-  .tk-list-header, .tk-list-row {
-    grid-template-columns: minmax(0, 1fr) 95px;
-    padding: 0 10px;
-    column-gap: 4px;
+  .tk-list-header { display: none; }
+
+  .tk-list-row {
+    display: block;
+    padding: 0;
+    min-height: unset;
+    border-bottom: none;
+    border-radius: 12px;
+    margin-bottom: 10px;
+    background: #fff;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.08);
+    border: 1px solid #e9eaec;
+    cursor: pointer;
+    transition: box-shadow 0.15s, transform 0.12s;
   }
-  .tk-list-header span:nth-child(n+3),
-  .tk-list-row span:nth-child(n+3) { display: none; }
-  .tk-list-row { min-height: 46px; }
+  .tk-list-row:hover {
+    box-shadow: 0 4px 14px rgba(99,102,241,0.13);
+    transform: translateY(-1px);
+  }
+
+  /* Hide all desktop grid spans */
+  .tk-list-row > span { display: none !important; }
+
+  /* Show mobile card */
+  .tk-list-mobile-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .tk-mobile-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 12px 14px 8px;
+    border-bottom: 1px solid #f3f4f6;
+  }
+
+  .tk-mobile-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    flex: 1;
+  }
+
+  .tk-mobile-title-text {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #111827;
+    line-height: 1.4;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .tk-mobile-top .tk-status-badge {
+    flex-shrink: 0;
+    font-size: 0.68rem;
+  }
+
+  .tk-mobile-bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 14px 10px;
+    gap: 8px;
+  }
+
+  .tk-mobile-bottom .tk-priority-badge {
+    font-size: 0.7rem;
+  }
+
+  .tk-mobile-bottom .tk-list-due {
+    font-size: 0.72rem;
+    margin-left: auto;
+  }
 
   /* Drawer — single column stacked detail rows */
   .tk-drawer-header { padding: 8px 12px; }

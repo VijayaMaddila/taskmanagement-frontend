@@ -41,8 +41,14 @@ function App() {
       <Routes>
         {/* Public routes — anyone can visit */}
         <Route path="/" element={<Landing />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
+        <Route
+          path="/login"
+          element={isAuthenticated() ? <Navigate to={hasRole("ADMIN") ? "/dashboard" : "/board"} replace /> : <Login />}
+        />
+        <Route
+          path="/register"
+          element={isAuthenticated() ? <Navigate to={hasRole("ADMIN") ? "/dashboard" : "/board"} replace /> : <Register />}
+        />
 
         {/* Admin-only routes */}
         <Route

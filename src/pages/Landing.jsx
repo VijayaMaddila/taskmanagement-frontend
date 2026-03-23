@@ -1,8 +1,11 @@
 import { useNavigate } from "react-router-dom";
+import { isAuthenticated, hasRole } from "../utils/auth";
 import "./Landing.css";
 
 function Landing() {
   const navigate = useNavigate();
+  const loggedIn = isAuthenticated();
+  const dashboardPath = hasRole("ADMIN") ? "/dashboard" : "/board";
 
   return (
     <div className="landing">
@@ -36,21 +39,38 @@ function Landing() {
           </li>
         </ul>
         <div className="nav-actions">
-          <button onClick={() => navigate("/login")} className="btn-ghost">
-            Log in
-          </button>
-          <button onClick={() => navigate("/register")} className="btn-nav-cta">
-            Get started
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <path
-                d="M2 7h10M8 3l4 4-4 4"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </button>
+          {loggedIn ? (
+            <button onClick={() => navigate(dashboardPath)} className="btn-nav-cta">
+              Go to Dashboard
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <path
+                  d="M2 7h10M8 3l4 4-4 4"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </button>
+          ) : (
+            <>
+              <button onClick={() => navigate("/login")} className="btn-ghost">
+                Log in
+              </button>
+              <button onClick={() => navigate("/register")} className="btn-nav-cta">
+                Get started
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <path
+                    d="M2 7h10M8 3l4 4-4 4"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
+            </>
+          )}
         </div>
       </nav>
 
@@ -71,12 +91,20 @@ function Landing() {
         </p>
 
         <div className="hero-ctas">
-          <button onClick={() => navigate("/register")} className="cta-primary">
-            Start for free
-          </button>
-          <button onClick={() => navigate("/login")} className="cta-secondary">
-            Sign in
-          </button>
+          {loggedIn ? (
+            <button onClick={() => navigate(dashboardPath)} className="cta-primary">
+              Go to Dashboard
+            </button>
+          ) : (
+            <>
+              <button onClick={() => navigate("/register")} className="cta-primary">
+                Start for free
+              </button>
+              <button onClick={() => navigate("/login")} className="cta-secondary">
+                Sign in
+              </button>
+            </>
+          )}
         </div>
         {/* App mockup */}
         <div className="mockup-wrapper">

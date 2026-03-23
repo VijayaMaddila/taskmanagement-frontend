@@ -24,8 +24,14 @@ function timeAgo(dateStr) {
 
   if (daysDiff === 0) return "Today";
   if (daysDiff === 1) return "Yesterday";
-  if (daysDiff < 30) return `${daysDiff}d ago`;
-  return `${Math.floor(daysDiff / 30)}mo ago`;
+  if (daysDiff > 0 && daysDiff < 30) return `${daysDiff}d ago`;
+  if (daysDiff >= 30) return `${Math.floor(daysDiff / 30)}mo ago`;
+
+  // Future dates
+  const futureDays = Math.abs(daysDiff);
+  if (futureDays === 1) return "1d left";
+  if (futureDays < 30) return `${futureDays}d left`;
+  return `${Math.floor(futureDays / 30)}mo left`;
 }
 
 // The four Kanban columns
@@ -901,6 +907,36 @@ const [filterSearch, setFilterSearch] = useState("");
                       </button>
                     </span>
                   )}
+
+                  {/* Mobile-only card layout */}
+                  <div className="tk-list-mobile-meta">
+                    <div className="tk-mobile-top">
+                      <div className="tk-mobile-title">
+                        <span
+                          className="tk-priority-dot"
+                          style={{ background: PRIORITY_COLOR[task.priority] || "#94a3b8" }}
+                        />
+                        <span className="tk-mobile-title-text">{task.title}</span>
+                      </div>
+                      <span className={`tk-status-badge s-${task.status?.toLowerCase().replace(/_/g, "-")}`}>
+                        {task.status?.replace(/_/g, " ")}
+                      </span>
+                    </div>
+                    <div className="tk-mobile-bottom">
+                      <span className={`tk-priority-badge p-${task.priority?.toLowerCase()}`}>
+                        {PRIORITY_ICON[task.priority]} {task.priority}
+                      </span>
+                      {task.dueDate && (
+                        <span className={`tk-list-due${isOverdue ? " tk-list-due--overdue" : ""}`}>
+                          <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
+                            <rect x="1" y="2" width="10" height="9" rx="1.5" stroke="currentColor" strokeWidth="1.2"/>
+                            <path d="M4 1v2M8 1v2M1 5h10" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+                          </svg>
+                          {timeAgo(task.dueDate)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </div>
               );
             })}
