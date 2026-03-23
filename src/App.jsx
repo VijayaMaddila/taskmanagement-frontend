@@ -15,8 +15,6 @@ import Team from "./pages/Team";
 import Profile from "./pages/Profile";
 
 import { isAuthenticated, hasRole } from "./utils/auth";
-
-// Redirect to /login if the user is not logged in
 function ProtectedRoute({ children }) {
   if (isAuthenticated()) {
     return children;
@@ -24,7 +22,6 @@ function ProtectedRoute({ children }) {
   return <Navigate to="/login" replace />;
 }
 
-// Redirect to /login if not logged in, or to /board if not an admin
 function AdminRoute({ children }) {
   if (!isAuthenticated()) {
     return <Navigate to="/login" replace />;
@@ -39,18 +36,33 @@ function App() {
   return (
     <Router>
       <Routes>
-        {/* Public routes — anyone can visit */}
         <Route path="/" element={<Landing />} />
         <Route
           path="/login"
-          element={isAuthenticated() ? <Navigate to={hasRole("ADMIN") ? "/dashboard" : "/board"} replace /> : <Login />}
+          element={
+            isAuthenticated() ? (
+              <Navigate
+                to={hasRole("ADMIN") ? "/dashboard" : "/board"}
+                replace
+              />
+            ) : (
+              <Login />
+            )
+          }
         />
         <Route
           path="/register"
-          element={isAuthenticated() ? <Navigate to={hasRole("ADMIN") ? "/dashboard" : "/board"} replace /> : <Register />}
+          element={
+            isAuthenticated() ? (
+              <Navigate
+                to={hasRole("ADMIN") ? "/dashboard" : "/board"}
+                replace
+              />
+            ) : (
+              <Register />
+            )
+          }
         />
-
-        {/* Admin-only routes */}
         <Route
           path="/dashboard"
           element={
@@ -59,8 +71,6 @@ function App() {
             </AdminRoute>
           }
         />
-
-        {/* Protected routes — any logged-in user */}
         <Route
           path="/projects"
           element={
@@ -93,8 +103,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
-        {/* Profile — any logged-in user */}
         <Route
           path="/profile"
           element={
@@ -103,8 +111,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
-        {/* Redirect old URLs to new ones */}
         <Route path="/tasks" element={<Navigate to="/board" replace />} />
         <Route path="/project" element={<Navigate to="/projects" replace />} />
       </Routes>

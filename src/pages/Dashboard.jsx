@@ -16,7 +16,6 @@ function getStoredUser() {
   }
 }
 
-
 const PROJECT_COLORS = [
   "#6366f1",
   "#a855f7",
@@ -62,15 +61,15 @@ function Dashboard() {
                   ...t,
                   projectId: t.projectId ?? p.id,
                   projectName: t.projectName ?? p.name,
-                }))
+                })),
               )
-              .catch(() => [])
-          )
+              .catch(() => []),
+          ),
         );
 
         const allTasks = taskLists.flat();
 
-        // 5 most recent tasks
+        //most recent tasks
         setRecentTasks(allTasks.slice(0, 5));
 
         // Enrich projects with task counts
@@ -95,15 +94,27 @@ function Dashboard() {
     loadDashboardData();
   }, []);
 
-const statCards = [
+  const statCards = [
     {
       label: "Total Projects",
       value: stats?.totalProjects ?? "—",
       icon: (
         <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-          <rect x="2" y="5" width="16" height="12" rx="2" stroke="currentColor" strokeWidth="1.5"/>
-          <path d="M2 8h16" stroke="currentColor" strokeWidth="1.5"/>
-          <path d="M6 5V4a2 2 0 012-2h4a2 2 0 012 2v1" stroke="currentColor" strokeWidth="1.5"/>
+          <rect
+            x="2"
+            y="5"
+            width="16"
+            height="12"
+            rx="2"
+            stroke="currentColor"
+            strokeWidth="1.5"
+          />
+          <path d="M2 8h16" stroke="currentColor" strokeWidth="1.5" />
+          <path
+            d="M6 5V4a2 2 0 012-2h4a2 2 0 012 2v1"
+            stroke="currentColor"
+            strokeWidth="1.5"
+          />
         </svg>
       ),
       color: "#6366f1",
@@ -114,9 +125,20 @@ const statCards = [
       value: stats?.openIssues ?? stats?.totalTasks ?? "—",
       icon: (
         <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-          <circle cx="10" cy="10" r="7.5" stroke="currentColor" strokeWidth="1.5"/>
-          <path d="M10 6.5v4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
-          <circle cx="10" cy="13" r="0.9" fill="currentColor"/>
+          <circle
+            cx="10"
+            cy="10"
+            r="7.5"
+            stroke="currentColor"
+            strokeWidth="1.5"
+          />
+          <path
+            d="M10 6.5v4"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+          />
+          <circle cx="10" cy="13" r="0.9" fill="currentColor" />
         </svg>
       ),
       color: "#ef4444",
@@ -127,8 +149,21 @@ const statCards = [
       value: stats?.inProgress ?? stats?.inProgressTasks ?? "—",
       icon: (
         <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-          <circle cx="10" cy="10" r="7.5" stroke="currentColor" strokeWidth="1.5" strokeDasharray="3 2"/>
-          <path d="M10 6v4l2.5 2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          <circle
+            cx="10"
+            cy="10"
+            r="7.5"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeDasharray="3 2"
+          />
+          <path
+            d="M10 6v4l2.5 2.5"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
         </svg>
       ),
       color: "#f97316",
@@ -139,8 +174,20 @@ const statCards = [
       value: stats?.completed ?? stats?.completedTasks ?? "—",
       icon: (
         <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-          <circle cx="10" cy="10" r="7.5" stroke="currentColor" strokeWidth="1.5"/>
-          <path d="M6.5 10l2.5 2.5 4.5-4.5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/>
+          <circle
+            cx="10"
+            cy="10"
+            r="7.5"
+            stroke="currentColor"
+            strokeWidth="1.5"
+          />
+          <path
+            d="M6.5 10l2.5 2.5 4.5-4.5"
+            stroke="currentColor"
+            strokeWidth="1.7"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
         </svg>
       ),
       color: "#22c55e",

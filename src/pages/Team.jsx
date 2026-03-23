@@ -2,7 +2,16 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { getProjects, getProjectMembers } from "../services/projectService";
 import { getTasks } from "../services/taskService";
-import { createTeam, addTeamMembers, removeTeamMember, sendInvite, declineInvite, getPendingInvitesByProject, getPendingInvitesByEmail, assignTeamToProject } from "../services/teamService";
+import {
+  createTeam,
+  addTeamMembers,
+  removeTeamMember,
+  sendInvite,
+  declineInvite,
+  getPendingInvitesByProject,
+  getPendingInvitesByEmail,
+  assignTeamToProject,
+} from "../services/teamService";
 import { getUsers } from "../services/userService";
 import { hasRole } from "../utils/auth";
 import Sidebar from "../components/Sidebar";
@@ -22,19 +31,16 @@ const ROLE_COLORS = { ADMIN: "#6366f1", DEVELOPER: "#22c55e" };
 export default function Team() {
   const isAdmin = hasRole("ADMIN");
   const navigate = useNavigate();
-
-  // ── Base data ─────────────────────────────────────────────────────────────
   const [users, setUsers] = useState([]);
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const [tasks, setTasks] = useState([]);
   const [allTeamMembers, setAllTeamMembers] = useState([]);
-  const [deleteTarget, setDeleteTarget] = useState(null); // membershipId
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const [selectedTeam, setSelectedTeam] = useState(null);
   const [tasksLoading, setTasksLoading] = useState(false);
 
-  // Compute groups at component level so modal can access it from root
   const [teamSearch, setTeamSearch] = useState("");
 
   const teamGroups = allTeamMembers.reduce((acc, m) => {
@@ -56,13 +62,10 @@ export default function Team() {
       );
     }),
   );
-
-  // ── Unified "Add to Team" modal ───────────────────────────────────────────
   const [showAdd, setShowAdd] = useState(false);
-  const [addTab, setAddTab] = useState("invite"); // 'invite' | 'direct'
-  const [addDone, setAddDone] = useState(null); // { type, label } on success
+  const [addTab, setAddTab] = useState("invite");
+  const [addDone, setAddDone] = useState(null);
 
-  // Invite-by-email form state
   const [inviteForm, setInviteForm] = useState({
     email: "",
     role: "DEVELOPER",
@@ -70,8 +73,6 @@ export default function Team() {
   });
   const [inviteError, setInviteError] = useState("");
   const [inviteSaving, setInviteSaving] = useState(false);
-
-  // Direct-add form state
   const [directForm, setDirectForm] = useState({
     userId: "",
     role: "DEVELOPER",
@@ -82,16 +83,12 @@ export default function Team() {
   });
   const [directError, setDirectError] = useState("");
   const [directSaving, setDirectSaving] = useState(false);
-
-  // ── Pending invites modal ─────────────────────────────────────────────────
   const [showPending, setShowPending] = useState(false);
   const [pendingInvites, setPendingInvites] = useState([]);
   const [pendingProject, setPendingProject] = useState("");
   const [pendingLoading, setPendingLoading] = useState(false);
   const [pendingError, setPendingError] = useState("");
   const [pendingEmailQuery, setPendingEmailQuery] = useState("");
-
-  // ── Data loading ──────────────────────────────────────────────────────────
 
   const loadAllTeamMembers = async (projectList) => {
     const allTeams = (
@@ -114,8 +111,6 @@ export default function Team() {
     ).flat();
     setAllTeamMembers(allTeams);
   };
-
-  // Fetch full task details per project (project-specific endpoint returns assignee info)
   const refreshTasks = async (projectList) => {
     setTasksLoading(true);
     try {
@@ -150,10 +145,7 @@ export default function Team() {
     (async () => {
       setLoading(true);
       try {
-        const [u, p] = await Promise.all([
-          getUsers(),
-          getProjects(),
-        ]);
+        const [u, p] = await Promise.all([getUsers(), getProjects()]);
         setUsers(u);
         setProjects(p);
         await Promise.all([refreshTasks(p), loadAllTeamMembers(p)]);
@@ -176,8 +168,6 @@ export default function Team() {
       console.error(e);
     }
   };
-
-  // ── Unified "Add to Team" modal ───────────────────────────────────────────
 
   const openAdd = (tab = "invite") => {
     setAddTab(tab);
@@ -215,15 +205,12 @@ export default function Team() {
     setInviteError("");
     setDirectError("");
   };
-
-  // Tab switch clears errors
   const switchTab = (tab) => {
     setAddTab(tab);
     setInviteError("");
     setDirectError("");
   };
 
-  // POST /api/teams/invite/send
   const handleInvite = async (e) => {
     e.preventDefault();
     if (!inviteForm.email.trim()) {
@@ -244,9 +231,7 @@ export default function Team() {
           msg = res.headers.get("content-type")?.includes("application/json")
             ? (await res.json()).message || ""
             : await res.text();
-        } catch {
-          /* ignore */
-        }
+        } catch {}
         setInviteError(
           res.status === 409
             ? "An invite has already been sent, or this user is already a member."
@@ -258,8 +243,6 @@ export default function Team() {
     }
     setInviteSaving(false);
   };
-
-  // POST /api/teams/{teamId}/members — use existing or create a new team
   const handleDirectAdd = async (e) => {
     e.preventDefault();
     if (!directForm.userId || !directForm.projectId) {
@@ -281,7 +264,6 @@ export default function Team() {
 
       if (directForm.teamMode === "existing") {
         teamId = Number(directForm.teamId);
-        // Assign this team to the project if it doesn't already have it
         const project = projects.find(
           (p) => String(p.id) === String(directForm.projectId),
         );
@@ -289,8 +271,9 @@ export default function Team() {
           await assignTeamToProject(directForm.projectId, { teamId });
         }
       } else {
-        // Create a new team and assign it to the project
-        const teamRes = await createTeam({ name: directForm.newTeamName.trim() });
+        const teamRes = await createTeam({
+          name: directForm.newTeamName.trim(),
+        });
         if (!teamRes.ok) {
           setDirectError("Failed to create team.");
           setDirectSaving(false);
@@ -324,8 +307,6 @@ export default function Team() {
     }
     setDirectSaving(false);
   };
-
-  // ── Pending invites ───────────────────────────────────────────────────────
 
   const loadPendingByProject = async (pid) => {
     if (!pid) {
@@ -372,12 +353,8 @@ export default function Team() {
       const res = await declineInvite(encodeURIComponent(token));
       if (res.ok)
         setPendingInvites((prev) => prev.filter((i) => i.token !== token));
-    } catch {
-      /* ignore */
-    }
+    } catch {}
   };
-
-  // ── Render ────────────────────────────────────────────────────────────────
 
   return (
     <div className="tm-layout">
@@ -573,8 +550,6 @@ export default function Team() {
           )}
         </div>
       </div>
-
-      {/* ── Team Members Modal ───────────────────────────────────────────── */}
       {selectedTeam && teamGroups[selectedTeam] && (
         <div className="tm-modal-overlay" onClick={() => setSelectedTeam(null)}>
           <div
@@ -681,9 +656,7 @@ export default function Team() {
                 const uname = m.user?.username || m.username || "—";
                 const email = m.user?.email || m.email || "";
                 const role = m.role;
-                // m.userId / m.user?.id for membership objects; m.id as fallback if API returns user objects directly
                 const memberId = m.userId ?? m.user?.id ?? m.id;
-                // Show all tasks assigned to this user (across all projects in this team)
                 const memberTasks = tasks.filter(
                   (t) =>
                     t.assignedToId != null &&
@@ -835,7 +808,6 @@ export default function Team() {
         </div>
       )}
 
-      {/* ── Unified "Add to Team" Modal ───────────────────────────────────── */}
       {showAdd && (
         <div className="tm-modal-overlay" onClick={closeAdd}>
           <div className="tm-modal" onClick={(e) => e.stopPropagation()}>
@@ -876,8 +848,6 @@ export default function Team() {
                 </svg>
               </button>
             </div>
-
-            {/* Success screen — shared by both tabs */}
             {addDone ? (
               <div className="tm-invite-success">
                 <div className="tm-success-icon">
@@ -983,8 +953,6 @@ export default function Team() {
                     Add Existing User
                   </button>
                 </div>
-
-                {/* ── Tab: Invite by Email ── */}
                 {addTab === "invite" && (
                   <form className="tm-invite-form" onSubmit={handleInvite}>
                     <p className="tm-invite-desc">
@@ -1255,8 +1223,6 @@ export default function Team() {
           </div>
         </div>
       )}
-
-      {/* ── Pending Invites Modal ─────────────────────────────────────────── */}
       {showPending && (
         <div className="tm-modal-overlay" onClick={() => setShowPending(false)}>
           <div className="tm-modal" onClick={(e) => e.stopPropagation()}>

@@ -14,7 +14,7 @@ function decodeJwt(token) {
   }
 }
 
-// Extract the role from the JWT payload (handles different field names)
+// Extract the role from the JWT payload
 function extractRole(payload) {
   if (payload.role) {
     return payload.role.replace(/^ROLE_/, "");
@@ -73,7 +73,7 @@ function Login() {
         throw new Error(errorMessage);
       }
 
-      // Get the token from the response (different backends use different field names)
+      // Get the token from the response
       const token =
         responseData.token ||
         responseData.accessToken ||
@@ -116,7 +116,6 @@ function Login() {
       const isAdmin = user.role?.toUpperCase() === "ADMIN";
       const redirectPath = isAdmin ? "/dashboard" : "/board";
       navigate(redirectPath);
-
     } catch (err) {
       setError(err.message || "Login failed");
     } finally {
@@ -128,7 +127,13 @@ function Login() {
     <div className="auth-container">
       <Link to="/" className="auth-back-btn">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-          <path d="M10 3L5 8l5 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+          <path
+            d="M10 3L5 8l5 5"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
         </svg>
         Home
       </Link>

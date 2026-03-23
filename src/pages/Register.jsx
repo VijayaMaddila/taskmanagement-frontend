@@ -13,13 +13,12 @@ function Register() {
     password: "",
     role: "DEVELOPER",
   });
-  const [inviteInfo, setInviteInfo] = useState(null);   // data from invite token
-  const [inviteError, setInviteError] = useState("");   // invalid/expired token message
+  const [inviteInfo, setInviteInfo] = useState(null);
+  const [inviteError, setInviteError] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  // If an invite token is present, fetch invite details and pre-fill the form
   useEffect(() => {
     if (!inviteToken) return;
 
@@ -35,15 +34,16 @@ function Register() {
         setFormData((prev) => ({
           ...prev,
           email: data.email ?? prev.email,
-          role:  data.role  ?? prev.role,
+          role: data.role ?? prev.role,
         }));
       })
       .catch(() => {
-        setInviteError("Could not load invite details. The link may be invalid.");
+        setInviteError(
+          "Could not load invite details. The link may be invalid.",
+        );
       });
   }, [inviteToken]);
 
-  // Update form field and clear any previous error
   const handleChange = (e) => {
     setFormData({
       ...formData,
@@ -58,9 +58,10 @@ function Register() {
     setError("");
 
     try {
-      // Pass the invite token as a query param so the backend creates the
-      // team entry automatically during registration
-      const response = await register(formData, inviteToken ? encodeURIComponent(inviteToken) : null);
+      const response = await register(
+        formData,
+        inviteToken ? encodeURIComponent(inviteToken) : null,
+      );
 
       if (!response.ok) {
         const errorMessage = await response.text();
@@ -68,7 +69,6 @@ function Register() {
       }
 
       navigate("/login");
-
     } catch (err) {
       setError(err.message || "Registration failed");
     } finally {
@@ -80,7 +80,13 @@ function Register() {
     <div className="auth-container">
       <Link to="/" className="auth-back-btn">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-          <path d="M10 3L5 8l5 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+          <path
+            d="M10 3L5 8l5 5"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
         </svg>
         Home
       </Link>
@@ -92,13 +98,19 @@ function Register() {
         {inviteToken && !inviteError && inviteInfo && (
           <div className="invite-banner">
             You have been invited to join as <strong>{inviteInfo.role}</strong>
-            {inviteInfo.projectName ? <> on <strong>{inviteInfo.projectName}</strong></> : ""}.
+            {inviteInfo.projectName ? (
+              <>
+                {" "}
+                on <strong>{inviteInfo.projectName}</strong>
+              </>
+            ) : (
+              ""
+            )}
+            .
           </div>
         )}
 
-        {inviteError && (
-          <div className="error-message">{inviteError}</div>
-        )}
+        {inviteError && <div className="error-message">{inviteError}</div>}
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
@@ -126,9 +138,10 @@ function Register() {
               required
               placeholder="john@example.com"
               autoComplete="email"
-              // Lock the email when coming from an invite so it can't be changed
               readOnly={!!inviteInfo}
-              style={inviteInfo ? { opacity: 0.7, cursor: "not-allowed" } : undefined}
+              style={
+                inviteInfo ? { opacity: 0.7, cursor: "not-allowed" } : undefined
+              }
             />
           </div>
 
@@ -165,7 +178,11 @@ function Register() {
 
           {error && <div className="error-message">{error}</div>}
 
-          <button type="submit" disabled={loading || !!inviteError} className="submit-btn">
+          <button
+            type="submit"
+            disabled={loading || !!inviteError}
+            className="submit-btn"
+          >
             {loading ? "Registering..." : "Register"}
           </button>
         </form>
@@ -173,7 +190,6 @@ function Register() {
         <p className="auth-link">
           Already have an account? <Link to="/login">Login here</Link>
         </p>
-
       </div>
     </div>
   );

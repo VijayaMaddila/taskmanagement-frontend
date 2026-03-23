@@ -1,9 +1,22 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { canManageProjects } from "../utils/auth";
-import { getTasks, createTask, updateTask, deleteTask } from "../services/taskService";
-import { getComments, createComment, updateComment, deleteComment } from "../services/commentService";
-import { getActivity, logActivity as logActivityApi } from "../services/activityService";
+import {
+  getTasks,
+  createTask,
+  updateTask,
+  deleteTask,
+} from "../services/taskService";
+import {
+  getComments,
+  createComment,
+  updateComment,
+  deleteComment,
+} from "../services/commentService";
+import {
+  getActivity,
+  logActivity as logActivityApi,
+} from "../services/activityService";
 import { getProjects, getProjectMembers } from "../services/projectService";
 import { getUsers } from "../services/userService";
 import Sidebar from "../components/Sidebar";
@@ -18,8 +31,6 @@ function getStoredUser() {
     return {};
   }
 }
-
-// Convert a date string to a human-readable "time ago" string
 function timeAgo(dateStr) {
   if (!dateStr) return "";
 
@@ -80,15 +91,12 @@ const emptyForm = {
   dueDate: "",
 };
 
-// Allowed status transitions for regular (non-manager) users
 const USER_STATUS_FLOW = {
   TODO: ["IN_PROGRESS"],
   IN_PROGRESS: ["IN_REVIEW", "DONE"],
   IN_REVIEW: ["IN_PROGRESS", "DONE"],
   DONE: [],
 };
-
-// A single task card shown on the Kanban board
 function TaskCard({ task, onEdit, onDelete, canManage, isOwner }) {
   const dueDate = task.dueDate ? new Date(task.dueDate) : null;
   const isOverdue = dueDate && dueDate < new Date() && task.status !== "DONE";
@@ -119,8 +127,21 @@ function TaskCard({ task, onEdit, onDelete, canManage, isOwner }) {
       <div className="tk-card-top">
         <span className="tk-card-type-icon" title="Task">
           <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
-            <rect x="1" y="1" width="12" height="12" rx="2.5" fill="#6366f1" opacity=".15" />
-            <path d="M4 7h6M7 4v6" stroke="#6366f1" strokeWidth="1.4" strokeLinecap="round" />
+            <rect
+              x="1"
+              y="1"
+              width="12"
+              height="12"
+              rx="2.5"
+              fill="#6366f1"
+              opacity=".15"
+            />
+            <path
+              d="M4 7h6M7 4v6"
+              stroke="#6366f1"
+              strokeWidth="1.4"
+              strokeLinecap="round"
+            />
           </svg>
         </span>
         <span className="tk-card-id">TASK-{task.id}</span>
@@ -156,15 +177,33 @@ function TaskCard({ task, onEdit, onDelete, canManage, isOwner }) {
           style={{ color: PRIORITY_COLOR[task.priority] || "#94a3b8" }}
           title={task.priority}
         >
-          <span className="tk-priority-icon">{PRIORITY_ICON[task.priority] || "—"}</span>
+          <span className="tk-priority-icon">
+            {PRIORITY_ICON[task.priority] || "—"}
+          </span>
           <span className="tk-priority-txt">{task.priority || "—"}</span>
         </span>
 
         {dueDateStr && (
-          <span className={`tk-due${isOverdue ? " tk-due-overdue" : ""}`} title="Due date">
+          <span
+            className={`tk-due${isOverdue ? " tk-due-overdue" : ""}`}
+            title="Due date"
+          >
             <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
-              <rect x="1" y="2" width="10" height="9" rx="1.5" stroke="currentColor" strokeWidth="1.2" />
-              <path d="M4 1v2M8 1v2M1 5h10" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+              <rect
+                x="1"
+                y="2"
+                width="10"
+                height="9"
+                rx="1.5"
+                stroke="currentColor"
+                strokeWidth="1.2"
+              />
+              <path
+                d="M4 1v2M8 1v2M1 5h10"
+                stroke="currentColor"
+                strokeWidth="1.2"
+                strokeLinecap="round"
+              />
             </svg>
             {dueDateStr}
           </span>
@@ -189,11 +228,11 @@ function Tasks() {
   const [projects, setProjects] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [projectMembersCache, setProjectMembersCache] = useState({}); // projectId -> [{id,name}]
+  const [projectMembersCache, setProjectMembersCache] = useState({});
 
   const [showModal, setShowModal] = useState(false);
   const [showDrawer, setShowDrawer] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState(null); // taskId
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const [drawerTask, setDrawerTask] = useState(null);
 
   const [comments, setComments] = useState([]);
@@ -203,10 +242,12 @@ function Tasks() {
   const [editingTask, setEditingTask] = useState(null);
   const [formData, setFormData] = useState(emptyForm);
   const [searchParams] = useSearchParams();
-  const [filterProject, setFilterProject] = useState(searchParams.get("project") || "");
+  const [filterProject, setFilterProject] = useState(
+    searchParams.get("project") || "",
+  );
   const [filterPriority, setFilterPriority] = useState("");
   const [filterAssignee, setFilterAssignee] = useState("");
-const [filterSearch, setFilterSearch] = useState("");
+  const [filterSearch, setFilterSearch] = useState("");
   const [dragOverCol, setDragOverCol] = useState(null);
   const [view, setView] = useState("kanban");
 
@@ -230,24 +271,29 @@ const [filterSearch, setFilterSearch] = useState("");
   const normalizeTasks = (taskList) =>
     taskList.map((task) => ({
       ...task,
-      projectId:   task.projectId   ?? task.project?.id       ?? null,
-      assignedToId:task.assignedToId?? task.assignedTo?.id    ?? null,
-      assigneeName:task.assigneeName?? task.assignedTo?.username ?? task.assignedTo?.name ?? null,
-      projectName: task.projectName ?? task.project?.name     ?? null,
-      status:   task.status   ?? "TODO",
+      projectId: task.projectId ?? task.project?.id ?? null,
+      assignedToId: task.assignedToId ?? task.assignedTo?.id ?? null,
+      assigneeName:
+        task.assigneeName ??
+        task.assignedTo?.username ??
+        task.assignedTo?.name ??
+        null,
+      projectName: task.projectName ?? task.project?.name ?? null,
+      status: task.status ?? "TODO",
       priority: task.priority ?? "MEDIUM",
     }));
 
   const injectProjectInfo = (normalizedTasks, projectList) =>
     normalizedTasks.map((t) => {
       if (t.projectId && t.projectName) return t;
-      const proj = projectList.find((p) => String(p.id) === String(t.projectId));
+      const proj = projectList.find(
+        (p) => String(p.id) === String(t.projectId),
+      );
       return {
         ...t,
         projectName: t.projectName || proj?.name || null,
       };
     });
-
 
   const loadAllData = async () => {
     setLoading(true);
@@ -257,18 +303,15 @@ const [filterSearch, setFilterSearch] = useState("");
         getUsers(),
       ]);
 
-      // Admins see all projects; members see only projects they belong to
       let myProjects = allProjects;
       if (!canManage && user.id) {
         const memberLists = await Promise.all(
-          allProjects.map((p) =>
-            getProjectMembers(p.id).catch(() => [])
-          )
+          allProjects.map((p) => getProjectMembers(p.id).catch(() => [])),
         );
         myProjects = allProjects.filter((_, i) =>
           memberLists[i].some(
-            (m) => String(m.userId ?? m.user?.id ?? m.id) === String(user.id)
-          )
+            (m) => String(m.userId ?? m.user?.id ?? m.id) === String(user.id),
+          ),
         );
       }
 
@@ -276,19 +319,27 @@ const [filterSearch, setFilterSearch] = useState("");
       const taskLists = await Promise.all(
         myProjects.map((p) =>
           getTasks(p.id)
-            .then((tasks) => tasks.map((t) => ({ ...t, projectId: t.projectId ?? p.id, projectName: t.projectName ?? p.name })))
-            .catch(() => [])
-        )
+            .then((tasks) =>
+              tasks.map((t) => ({
+                ...t,
+                projectId: t.projectId ?? p.id,
+                projectName: t.projectName ?? p.name,
+              })),
+            )
+            .catch(() => []),
+        ),
       );
 
       const allTasks = taskLists.flat();
       const normalized = normalizeTasks(allTasks);
       setTasks(injectProjectInfo(normalized, myProjects));
       setProjects(myProjects);
-      setUsers(userList.map((u) => ({
-        id: u.id,
-        name: u.name || u.username || u.email || `User #${u.id}`,
-      })));
+      setUsers(
+        userList.map((u) => ({
+          id: u.id,
+          name: u.name || u.username || u.email || `User #${u.id}`,
+        })),
+      );
     } catch (error) {
       console.error(error);
     }
@@ -302,7 +353,6 @@ const [filterSearch, setFilterSearch] = useState("");
       .catch(() => {});
   };
 
-  // Post an activity log entry to the backend
   const logActivity = (taskId, action, extra = {}) => {
     logActivityApi({
       userId: Number(user.id),
@@ -327,7 +377,6 @@ const [filterSearch, setFilterSearch] = useState("");
     setFormData(emptyForm);
   };
 
-  // Open the task detail drawer and load its comments and activity
   const openEdit = (task) => {
     const pid = task.projectId ?? task.project?.id;
     setDrawerTask(task);
@@ -352,8 +401,6 @@ const [filterSearch, setFilterSearch] = useState("");
       .catch(() => {});
 
     fetchActivityLogs(task.id);
-
-    // Load team members for this task's project (for the assignee dropdown)
     if (pid) loadProjectMembers(pid);
   };
 
@@ -424,12 +471,8 @@ const [filterSearch, setFilterSearch] = useState("");
       console.error(error);
     }
   };
-
-  // Handle form submission for creating or editing a task
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    // Build the payload — managers can set all fields; others can only change status
     let payload;
     if (canManage) {
       payload = {
@@ -439,7 +482,9 @@ const [filterSearch, setFilterSearch] = useState("");
         priority: formData.priority,
         projectId: formData.projectId ? Number(formData.projectId) : null,
         createdById: user.id ? Number(user.id) : null,
-        assignedToId: formData.assignedToId ? Number(formData.assignedToId) : null,
+        assignedToId: formData.assignedToId
+          ? Number(formData.assignedToId)
+          : null,
         parentTaskId: null,
         dueDate: formData.dueDate ? `${formData.dueDate}T18:00:00` : null,
       };
@@ -471,7 +516,6 @@ const [filterSearch, setFilterSearch] = useState("");
     }
   };
 
-  // Save changes from inside the task detail drawer
   const handleDrawerSave = async () => {
     if (!editingTask) return;
 
@@ -483,8 +527,11 @@ const [filterSearch, setFilterSearch] = useState("");
         status: formData.status,
         priority: formData.priority,
         projectId: formData.projectId ? Number(formData.projectId) : null,
-        createdById: editingTask.createdById ?? (user.id ? Number(user.id) : null),
-        assignedToId: formData.assignedToId ? Number(formData.assignedToId) : null,
+        createdById:
+          editingTask.createdById ?? (user.id ? Number(user.id) : null),
+        assignedToId: formData.assignedToId
+          ? Number(formData.assignedToId)
+          : null,
         parentTaskId: null,
         dueDate: formData.dueDate ? `${formData.dueDate}T18:00:00` : null,
       };
@@ -519,13 +566,9 @@ const [filterSearch, setFilterSearch] = useState("");
       console.error(error);
     }
   };
-
-  // Handle dropping a task card onto a different column (status change)
   const handleStatusDrop = async (taskId, newStatus) => {
     const task = tasks.find((t) => t.id === taskId);
     if (!task || task.status === newStatus) return;
-
-    // Regular users can only move tasks to allowed next statuses
     if (!canManage) {
       const allowedNextStatuses = USER_STATUS_FLOW[task.status] ?? [];
       if (!allowedNextStatuses.includes(newStatus)) return;
@@ -542,57 +585,59 @@ const [filterSearch, setFilterSearch] = useState("");
         oldStatus: task.status,
         newStatus: newStatus,
       });
-
-      // Update the task status in local state immediately (no need to reload all data)
       setTasks((previousTasks) =>
         previousTasks.map((t) =>
-          t.id === taskId ? { ...t, status: newStatus } : t
-        )
+          t.id === taskId ? { ...t, status: newStatus } : t,
+        ),
       );
     } catch (error) {
       console.error(error);
     }
   };
-
-  // Apply non-project filters (priority, assignee, search) to a task list
   const applySecondaryFilters = (taskList) =>
     taskList.filter((task) => {
       if (filterPriority && task.priority !== filterPriority) return false;
-      if (filterAssignee && String(task.assignedToId) !== String(filterAssignee)) return false;
+      if (
+        filterAssignee &&
+        String(task.assignedToId) !== String(filterAssignee)
+      )
+        return false;
       if (filterSearch) {
         const q = filterSearch.toLowerCase();
-        if (!task.title?.toLowerCase().includes(q) && !String(task.id).includes(filterSearch)) return false;
+        if (
+          !task.title?.toLowerCase().includes(q) &&
+          !String(task.id).includes(filterSearch)
+        )
+          return false;
       }
       return true;
     });
-
-  // Filter tasks based on the active filter dropdowns and search text
   const filtered = applySecondaryFilters(tasks).filter((task) => {
-    if (filterProject && String(task.projectId) !== String(filterProject)) return false;
+    if (filterProject && String(task.projectId) !== String(filterProject))
+      return false;
     return true;
   });
-
-  // Count for each project tab (respects search/priority/assignee but not project filter)
   const getProjectCount = (projectId) =>
-    applySecondaryFilters(tasks).filter((t) => String(t.projectId) === String(projectId)).length;
-
-  // Fetch team members for a project and cache them (keyed by projectId)
+    applySecondaryFilters(tasks).filter(
+      (t) => String(t.projectId) === String(projectId),
+    ).length;
   const loadProjectMembers = async (projectId) => {
     if (!projectId || projectMembersCache[projectId]) return;
     try {
       const members = await getProjectMembers(projectId);
-      const mapped = members.map(m => ({
-        id:   m.user?.id   ?? m.userId,
-        name: m.user?.username || m.user?.name || m.user?.email || `User #${m.user?.id ?? m.userId}`,
+      const mapped = members.map((m) => ({
+        id: m.user?.id ?? m.userId,
+        name:
+          m.user?.username ||
+          m.user?.name ||
+          m.user?.email ||
+          `User #${m.user?.id ?? m.userId}`,
       }));
-      setProjectMembersCache(prev => ({ ...prev, [projectId]: mapped }));
+      setProjectMembersCache((prev) => ({ ...prev, [projectId]: mapped }));
     } catch {
-      setProjectMembersCache(prev => ({ ...prev, [projectId]: [] }));
+      setProjectMembersCache((prev) => ({ ...prev, [projectId]: [] }));
     }
   };
-
-  // Return the team members for the selected project.
-  // Falls back to all users when no project is selected or members not yet loaded.
   const getUsersForProject = (projectId) => {
     if (!projectId) return users;
     const members = projectMembersCache[projectId];
@@ -600,7 +645,8 @@ const [filterSearch, setFilterSearch] = useState("");
     return users;
   };
 
-  const hasActiveFilters = filterProject || filterPriority || filterAssignee || filterSearch;
+  const hasActiveFilters =
+    filterProject || filterPriority || filterAssignee || filterSearch;
 
   const clearFilters = () => {
     setFilterProject("");
@@ -633,10 +679,17 @@ const [filterSearch, setFilterSearch] = useState("");
             {canManage && (
               <button
                 className="tk-create-btn"
-                onClick={() => openCreate(filterProject ? { projectId: filterProject } : {})}
+                onClick={() =>
+                  openCreate(filterProject ? { projectId: filterProject } : {})
+                }
               >
                 <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                  <path d="M6 1v10M1 6h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                  <path
+                    d="M6 1v10M1 6h10"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  />
                 </svg>
                 Create
               </button>
@@ -652,7 +705,9 @@ const [filterSearch, setFilterSearch] = useState("");
               onClick={() => setFilterProject("")}
             >
               All Projects
-              <span className="tk-tab-count">{applySecondaryFilters(tasks).length}</span>
+              <span className="tk-tab-count">
+                {applySecondaryFilters(tasks).length}
+              </span>
             </button>
             {projects.map((p) => (
               <button
@@ -670,9 +725,26 @@ const [filterSearch, setFilterSearch] = useState("");
         {/* Filter bar */}
         <div className="tk-filterbar">
           <div className="tk-search-wrap">
-            <svg className="tk-search-icon" width="13" height="13" viewBox="0 0 16 16" fill="none">
-              <circle cx="7" cy="7" r="5" stroke="currentColor" strokeWidth="1.5" />
-              <path d="M11 11l3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            <svg
+              className="tk-search-icon"
+              width="13"
+              height="13"
+              viewBox="0 0 16 16"
+              fill="none"
+            >
+              <circle
+                cx="7"
+                cy="7"
+                r="5"
+                stroke="currentColor"
+                strokeWidth="1.5"
+              />
+              <path
+                d="M11 11l3 3"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+              />
             </svg>
             <input
               className="tk-search-input"
@@ -729,9 +801,32 @@ const [filterSearch, setFilterSearch] = useState("");
               title="Board view"
             >
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                <rect x="0" y="0" width="4" height="14" rx="1" fill="currentColor" />
-                <rect x="5" y="0" width="4" height="14" rx="1" fill="currentColor" opacity=".5" />
-                <rect x="10" y="0" width="4" height="14" rx="1" fill="currentColor" opacity=".3" />
+                <rect
+                  x="0"
+                  y="0"
+                  width="4"
+                  height="14"
+                  rx="1"
+                  fill="currentColor"
+                />
+                <rect
+                  x="5"
+                  y="0"
+                  width="4"
+                  height="14"
+                  rx="1"
+                  fill="currentColor"
+                  opacity=".5"
+                />
+                <rect
+                  x="10"
+                  y="0"
+                  width="4"
+                  height="14"
+                  rx="1"
+                  fill="currentColor"
+                  opacity=".3"
+                />
               </svg>
               Board
             </button>
@@ -741,9 +836,32 @@ const [filterSearch, setFilterSearch] = useState("");
               title="List view"
             >
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                <rect x="0" y="1" width="14" height="2.5" rx="1" fill="currentColor" />
-                <rect x="0" y="5.5" width="14" height="2.5" rx="1" fill="currentColor" opacity=".6" />
-                <rect x="0" y="10" width="14" height="2.5" rx="1" fill="currentColor" opacity=".4" />
+                <rect
+                  x="0"
+                  y="1"
+                  width="14"
+                  height="2.5"
+                  rx="1"
+                  fill="currentColor"
+                />
+                <rect
+                  x="0"
+                  y="5.5"
+                  width="14"
+                  height="2.5"
+                  rx="1"
+                  fill="currentColor"
+                  opacity=".6"
+                />
+                <rect
+                  x="0"
+                  y="10"
+                  width="14"
+                  height="2.5"
+                  rx="1"
+                  fill="currentColor"
+                  opacity=".4"
+                />
               </svg>
               List
             </button>
@@ -758,27 +876,35 @@ const [filterSearch, setFilterSearch] = useState("");
                 key={column.id}
                 className={`tk-column${dragOverCol === column.id ? " tk-column-dragover" : ""}`}
                 onDragOver={(e) => {
-                  e.preventDefault(); // required to allow dropping
+                  e.preventDefault();
                   setDragOverCol(column.id);
                 }}
                 onDragLeave={() => setDragOverCol(null)}
                 onDrop={(e) => {
                   setDragOverCol(null);
-                  const droppedTaskId = parseInt(e.dataTransfer.getData("taskId"));
+                  const droppedTaskId = parseInt(
+                    e.dataTransfer.getData("taskId"),
+                  );
                   handleStatusDrop(droppedTaskId, column.id);
                 }}
               >
                 {/* Column header */}
                 <div className="tk-col-header">
-                  <span className="tk-col-dot" style={{ background: column.color }} />
+                  <span
+                    className="tk-col-dot"
+                    style={{ background: column.color }}
+                  />
                   <span className="tk-col-label">{column.label}</span>
-                  <span className="tk-col-count">{getTasksByStatus(column.id).length}</span>
+                  <span className="tk-col-count">
+                    {getTasksByStatus(column.id).length}
+                  </span>
                 </div>
 
                 {/* Task cards */}
                 <div className="tk-col-body">
                   {getTasksByStatus(column.id).map((task) => {
-                    const isOwner = String(task.assignedToId) === String(user.id);
+                    const isOwner =
+                      String(task.assignedToId) === String(user.id);
                     const isDraggable = canManage || isOwner;
 
                     return (
@@ -805,10 +931,21 @@ const [filterSearch, setFilterSearch] = useState("");
                   {/* Empty column placeholder */}
                   {getTasksByStatus(column.id).length === 0 && (
                     <div className="tk-empty-col">
-                      <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+                      <svg
+                        width="28"
+                        height="28"
+                        viewBox="0 0 32 32"
+                        fill="none"
+                      >
                         <rect
-                          x="4" y="4" width="24" height="24" rx="6"
-                          stroke="#e5e7eb" strokeWidth="1.5" strokeDasharray="4 3"
+                          x="4"
+                          y="4"
+                          width="24"
+                          height="24"
+                          rx="6"
+                          stroke="#e5e7eb"
+                          strokeWidth="1.5"
+                          strokeDasharray="4 3"
                         />
                       </svg>
                       <span>Drop issues here</span>
@@ -816,14 +953,18 @@ const [filterSearch, setFilterSearch] = useState("");
                   )}
                 </div>
 
-                {/* Create button at the bottom of each column — managers only */}
                 {canManage && (
                   <button
                     className="tk-col-create"
                     onClick={() => openCreate({ status: column.id })}
                   >
                     <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                      <path d="M6 1v10M1 6h10" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                      <path
+                        d="M6 1v10M1 6h10"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                      />
                     </svg>
                     Create
                   </button>
@@ -851,30 +992,50 @@ const [filterSearch, setFilterSearch] = useState("");
             )}
 
             {filtered.map((task) => {
-              const assigneeName = task.assigneeName || task.assignedTo?.username || task.assignedTo?.name || null;
+              const assigneeName =
+                task.assigneeName ||
+                task.assignedTo?.username ||
+                task.assignedTo?.name ||
+                null;
               const assigneeInitials = assigneeName
-                ? assigneeName.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2)
+                ? assigneeName
+                    .split(" ")
+                    .map((w) => w[0])
+                    .join("")
+                    .toUpperCase()
+                    .slice(0, 2)
                 : null;
               const dueDate = task.dueDate ? new Date(task.dueDate) : null;
-              const isOverdue = dueDate && dueDate < new Date() && task.status !== "DONE";
+              const isOverdue =
+                dueDate && dueDate < new Date() && task.status !== "DONE";
               return (
-                <div key={task.id} className="tk-list-row" onClick={() => openEdit(task)}>
+                <div
+                  key={task.id}
+                  className="tk-list-row"
+                  onClick={() => openEdit(task)}
+                >
                   <span className="tk-list-title">
                     <span
                       className="tk-priority-dot"
-                      style={{ background: PRIORITY_COLOR[task.priority] || "#94a3b8" }}
+                      style={{
+                        background: PRIORITY_COLOR[task.priority] || "#94a3b8",
+                      }}
                     />
                     <span className="tk-list-title-text">{task.title}</span>
                   </span>
 
                   <span>
-                    <span className={`tk-status-badge s-${task.status?.toLowerCase().replace(/_/g, "-")}`}>
+                    <span
+                      className={`tk-status-badge s-${task.status?.toLowerCase().replace(/_/g, "-")}`}
+                    >
                       {task.status?.replace(/_/g, " ")}
                     </span>
                   </span>
 
                   <span>
-                    <span className={`tk-priority-badge p-${task.priority?.toLowerCase()}`}>
+                    <span
+                      className={`tk-priority-badge p-${task.priority?.toLowerCase()}`}
+                    >
                       {task.priority}
                     </span>
                   </span>
@@ -882,8 +1043,12 @@ const [filterSearch, setFilterSearch] = useState("");
                   <span className="tk-list-assignee">
                     {assigneeInitials ? (
                       <>
-                        <span className="tk-list-assignee-avatar">{assigneeInitials}</span>
-                        <span className="tk-list-assignee-name">{assigneeName}</span>
+                        <span className="tk-list-assignee-avatar">
+                          {assigneeInitials}
+                        </span>
+                        <span className="tk-list-assignee-name">
+                          {assigneeName}
+                        </span>
                       </>
                     ) : (
                       <span className="tk-list-unassigned">—</span>
@@ -892,28 +1057,73 @@ const [filterSearch, setFilterSearch] = useState("");
 
                   <span className="tk-list-project">
                     {task.projectName ||
-                      projects.find((p) => String(p.id) === String(task.projectId))?.name ||
+                      projects.find(
+                        (p) => String(p.id) === String(task.projectId),
+                      )?.name ||
                       "—"}
                   </span>
 
-                  <span className={`tk-list-due${isOverdue ? " tk-list-due--overdue" : ""}`}>
+                  <span
+                    className={`tk-list-due${isOverdue ? " tk-list-due--overdue" : ""}`}
+                  >
                     {task.dueDate ? (
                       <>
-                        <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
-                          <rect x="1" y="2" width="10" height="9" rx="1.5" stroke="currentColor" strokeWidth="1.2"/>
-                          <path d="M4 1v2M8 1v2M1 5h10" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+                        <svg
+                          width="10"
+                          height="10"
+                          viewBox="0 0 12 12"
+                          fill="none"
+                        >
+                          <rect
+                            x="1"
+                            y="2"
+                            width="10"
+                            height="9"
+                            rx="1.5"
+                            stroke="currentColor"
+                            strokeWidth="1.2"
+                          />
+                          <path
+                            d="M4 1v2M8 1v2M1 5h10"
+                            stroke="currentColor"
+                            strokeWidth="1.2"
+                            strokeLinecap="round"
+                          />
                         </svg>
                         {timeAgo(task.dueDate)}
                       </>
-                    ) : "—"}
+                    ) : (
+                      "—"
+                    )}
                   </span>
 
                   {canManage && (
-                    <span className="tk-list-action" onClick={(e) => e.stopPropagation()}>
-                      <button className="tk-del-btn" onClick={() => setDeleteTarget(task.id)}>
-                        <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
-                          <path d="M2 4h10M5 4V2.5a.5.5 0 01.5-.5h3a.5.5 0 01.5.5V4M6 7v3M8 7v3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
-                          <path d="M3 4l.7 7.3A1 1 0 004.7 12h4.6a1 1 0 001-.93L11 4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+                    <span
+                      className="tk-list-action"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <button
+                        className="tk-del-btn"
+                        onClick={() => setDeleteTarget(task.id)}
+                      >
+                        <svg
+                          width="13"
+                          height="13"
+                          viewBox="0 0 14 14"
+                          fill="none"
+                        >
+                          <path
+                            d="M2 4h10M5 4V2.5a.5.5 0 01.5-.5h3a.5.5 0 01.5.5V4M6 7v3M8 7v3"
+                            stroke="currentColor"
+                            strokeWidth="1.3"
+                            strokeLinecap="round"
+                          />
+                          <path
+                            d="M3 4l.7 7.3A1 1 0 004.7 12h4.6a1 1 0 001-.93L11 4"
+                            stroke="currentColor"
+                            strokeWidth="1.3"
+                            strokeLinecap="round"
+                          />
                         </svg>
                       </button>
                     </span>
@@ -925,23 +1135,52 @@ const [filterSearch, setFilterSearch] = useState("");
                       <div className="tk-mobile-title">
                         <span
                           className="tk-priority-dot"
-                          style={{ background: PRIORITY_COLOR[task.priority] || "#94a3b8" }}
+                          style={{
+                            background:
+                              PRIORITY_COLOR[task.priority] || "#94a3b8",
+                          }}
                         />
-                        <span className="tk-mobile-title-text">{task.title}</span>
+                        <span className="tk-mobile-title-text">
+                          {task.title}
+                        </span>
                       </div>
-                      <span className={`tk-status-badge s-${task.status?.toLowerCase().replace(/_/g, "-")}`}>
+                      <span
+                        className={`tk-status-badge s-${task.status?.toLowerCase().replace(/_/g, "-")}`}
+                      >
                         {task.status?.replace(/_/g, " ")}
                       </span>
                     </div>
                     <div className="tk-mobile-bottom">
-                      <span className={`tk-priority-badge p-${task.priority?.toLowerCase()}`}>
+                      <span
+                        className={`tk-priority-badge p-${task.priority?.toLowerCase()}`}
+                      >
                         {PRIORITY_ICON[task.priority]} {task.priority}
                       </span>
                       {task.dueDate && (
-                        <span className={`tk-list-due${isOverdue ? " tk-list-due--overdue" : ""}`}>
-                          <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
-                            <rect x="1" y="2" width="10" height="9" rx="1.5" stroke="currentColor" strokeWidth="1.2"/>
-                            <path d="M4 1v2M8 1v2M1 5h10" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+                        <span
+                          className={`tk-list-due${isOverdue ? " tk-list-due--overdue" : ""}`}
+                        >
+                          <svg
+                            width="10"
+                            height="10"
+                            viewBox="0 0 12 12"
+                            fill="none"
+                          >
+                            <rect
+                              x="1"
+                              y="2"
+                              width="10"
+                              height="9"
+                              rx="1.5"
+                              stroke="currentColor"
+                              strokeWidth="1.2"
+                            />
+                            <path
+                              d="M4 1v2M8 1v2M1 5h10"
+                              stroke="currentColor"
+                              strokeWidth="1.2"
+                              strokeLinecap="round"
+                            />
                           </svg>
                           {timeAgo(task.dueDate)}
                         </span>
@@ -954,17 +1193,15 @@ const [filterSearch, setFilterSearch] = useState("");
           </div>
         )}
       </main>
-
-      {/* Task Detail Drawer (slides in from the right) */}
       {showDrawer && drawerTask && (
         <div className="tk-drawer-overlay" onClick={closeDrawer}>
           <div className="tk-drawer" onClick={(e) => e.stopPropagation()}>
-
-            {/* Drawer header: project name / task ID + close and delete buttons */}
             <div className="tk-drawer-header">
               <div className="tk-drawer-breadcrumb">
                 <span className="tk-drawer-project">
-                  {projects.find((p) => String(p.id) === String(drawerTask.projectId))?.name || "No Project"}
+                  {projects.find(
+                    (p) => String(p.id) === String(drawerTask.projectId),
+                  )?.name || "No Project"}
                 </span>
                 <span className="tk-drawer-sep">/</span>
                 <span className="tk-drawer-taskid">TASK-{drawerTask.id}</span>
@@ -980,7 +1217,14 @@ const [filterSearch, setFilterSearch] = useState("");
                       setDeleteTarget(drawerTask.id);
                     }}
                   >
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <svg
+                      width="15"
+                      height="15"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
                       <polyline points="3 6 5 6 21 6" />
                       <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" />
                       <path d="M10 11v6M14 11v6" />
@@ -989,26 +1233,31 @@ const [filterSearch, setFilterSearch] = useState("");
                   </button>
                 )}
 
-                <button className="tk-drawer-icon-btn" onClick={closeDrawer} title="Close">
+                <button
+                  className="tk-drawer-icon-btn"
+                  onClick={closeDrawer}
+                  title="Close"
+                >
                   <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                    <path d="M12 4L4 12M4 4l8 8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                    <path
+                      d="M12 4L4 12M4 4l8 8"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                    />
                   </svg>
                 </button>
               </div>
             </div>
-
-            {/* Drawer body: left (content) and right (details) */}
             <div className="tk-drawer-body">
-
-              {/* Left column: title, description, activity/comments */}
               <div className="tk-drawer-left">
-
-                {/* Task title — editable for managers */}
                 {canManage ? (
                   <input
                     className="tk-drawer-title-input"
                     value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, title: e.target.value })
+                    }
                   />
                 ) : (
                   <h2 className="tk-drawer-title">{drawerTask.title}</h2>
@@ -1023,7 +1272,12 @@ const [filterSearch, setFilterSearch] = useState("");
                       rows="4"
                       placeholder="Add a description..."
                       value={formData.description}
-                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          description: e.target.value,
+                        })
+                      }
                     />
                   ) : (
                     <p className="tk-drawer-desc-text">
@@ -1031,14 +1285,28 @@ const [filterSearch, setFilterSearch] = useState("");
                     </p>
                   )}
                 </div>
-
-                {/* Save / Cancel buttons — below description, managers only */}
                 {canManage && (
                   <div className="tk-drawer-save-row">
-                    <button className="btn-primary" style={{ padding: "5px 12px", fontSize: "12px", width: "auto" }} onClick={handleDrawerSave}>
+                    <button
+                      className="btn-primary"
+                      style={{
+                        padding: "5px 12px",
+                        fontSize: "12px",
+                        width: "auto",
+                      }}
+                      onClick={handleDrawerSave}
+                    >
                       Save changes
                     </button>
-                    <button className="btn-secondary" style={{ padding: "5px 12px", fontSize: "12px", width: "auto" }} onClick={closeDrawer}>
+                    <button
+                      className="btn-secondary"
+                      style={{
+                        padding: "5px 12px",
+                        fontSize: "12px",
+                        width: "auto",
+                      }}
+                      onClick={closeDrawer}
+                    >
                       Cancel
                     </button>
                   </div>
@@ -1086,16 +1354,23 @@ const [filterSearch, setFilterSearch] = useState("");
                               String(commentItem.user?.id) === String(user.id);
 
                             return (
-                              <div key={commentItem.id} className="tk-comment-item">
+                              <div
+                                key={commentItem.id}
+                                className="tk-comment-item"
+                              >
                                 <div className="tk-drawer-comment-avatar">
                                   {commenterInitials}
                                 </div>
 
                                 <div className="tk-comment-body">
                                   <div className="tk-comment-meta">
-                                    <span className="tk-comment-author">{commenterName}</span>
+                                    <span className="tk-comment-author">
+                                      {commenterName}
+                                    </span>
                                     <span className="tk-comment-time">
-                                      {commentItem.createdAt ? timeAgo(commentItem.createdAt) : ""}
+                                      {commentItem.createdAt
+                                        ? timeAgo(commentItem.createdAt)
+                                        : ""}
                                     </span>
                                   </div>
 
@@ -1107,21 +1382,37 @@ const [filterSearch, setFilterSearch] = useState("");
                                         rows="2"
                                         value={editingComment.content}
                                         onChange={(e) =>
-                                          setEditingComment({ ...editingComment, content: e.target.value })
+                                          setEditingComment({
+                                            ...editingComment,
+                                            content: e.target.value,
+                                          })
                                         }
                                       />
-                                      <div className="tk-drawer-comment-actions" style={{ paddingLeft: 0 }}>
+                                      <div
+                                        className="tk-drawer-comment-actions"
+                                        style={{ paddingLeft: 0 }}
+                                      >
                                         <button
                                           className="btn-primary"
-                                          style={{ padding: "5px 12px", fontSize: "12px" }}
-                                          onClick={() => handleCommentEdit(commentItem.id)}
+                                          style={{
+                                            padding: "5px 12px",
+                                            fontSize: "12px",
+                                          }}
+                                          onClick={() =>
+                                            handleCommentEdit(commentItem.id)
+                                          }
                                         >
                                           Save
                                         </button>
                                         <button
                                           className="btn-secondary"
-                                          style={{ padding: "5px 12px", fontSize: "12px" }}
-                                          onClick={() => setEditingComment(null)}
+                                          style={{
+                                            padding: "5px 12px",
+                                            fontSize: "12px",
+                                          }}
+                                          onClick={() =>
+                                            setEditingComment(null)
+                                          }
                                         >
                                           Cancel
                                         </button>
@@ -1129,7 +1420,9 @@ const [filterSearch, setFilterSearch] = useState("");
                                     </>
                                   ) : (
                                     <>
-                                      <p className="tk-comment-text">{commentItem.content}</p>
+                                      <p className="tk-comment-text">
+                                        {commentItem.content}
+                                      </p>
 
                                       {isOwnComment && (
                                         <div className="tk-comment-actions">
@@ -1143,7 +1436,13 @@ const [filterSearch, setFilterSearch] = useState("");
                                           >
                                             Edit
                                           </button>
-                                          <button onClick={() => handleCommentDelete(commentItem.id)}>
+                                          <button
+                                            onClick={() =>
+                                              handleCommentDelete(
+                                                commentItem.id,
+                                              )
+                                            }
+                                          >
                                             Delete
                                           </button>
                                         </div>
@@ -1179,14 +1478,22 @@ const [filterSearch, setFilterSearch] = useState("");
                       <div className="tk-drawer-comment-actions">
                         <button
                           className="btn-primary"
-                          style={{ padding: "4px 10px", fontSize: "11px", width: "auto" }}
+                          style={{
+                            padding: "4px 10px",
+                            fontSize: "11px",
+                            width: "auto",
+                          }}
                           onClick={handleCommentSave}
                         >
                           Add
                         </button>
                         <button
                           className="btn-secondary"
-                          style={{ padding: "4px 10px", fontSize: "11px", width: "auto" }}
+                          style={{
+                            padding: "4px 10px",
+                            fontSize: "11px",
+                            width: "auto",
+                          }}
                           onClick={() => setComment("")}
                         >
                           Cancel
@@ -1200,7 +1507,9 @@ const [filterSearch, setFilterSearch] = useState("");
                     <>
                       {activityLogs.length === 0 ? (
                         activeTab === "history" && (
-                          <p className="tk-activity-empty">No activity recorded yet.</p>
+                          <p className="tk-activity-empty">
+                            No activity recorded yet.
+                          </p>
                         )
                       ) : (
                         <div className="tk-activity-list">
@@ -1214,40 +1523,67 @@ const [filterSearch, setFilterSearch] = useState("");
                               .join("")
                               .toUpperCase()
                               .slice(0, 2);
-
-                            // Convert action code to a human-readable label
                             let actionLabel;
                             switch (log.action) {
-                              case "TASK_CREATED":    actionLabel = "created the task";    break;
-                              case "TASK_UPDATED":    actionLabel = "updated the task";    break;
-                              case "TASK_DELETED":    actionLabel = "deleted the task";    break;
-                              case "STATUS_CHANGED":  actionLabel = "updated the Status";  break;
-                              case "COMMENT_ADDED":   actionLabel = "added a comment";     break;
-                              case "COMMENT_UPDATED": actionLabel = "edited a comment";    break;
-                              case "COMMENT_DELETED": actionLabel = "deleted a comment";   break;
+                              case "TASK_CREATED":
+                                actionLabel = "created the task";
+                                break;
+                              case "TASK_UPDATED":
+                                actionLabel = "updated the task";
+                                break;
+                              case "TASK_DELETED":
+                                actionLabel = "deleted the task";
+                                break;
+                              case "STATUS_CHANGED":
+                                actionLabel = "updated the Status";
+                                break;
+                              case "COMMENT_ADDED":
+                                actionLabel = "added a comment";
+                                break;
+                              case "COMMENT_UPDATED":
+                                actionLabel = "edited a comment";
+                                break;
+                              case "COMMENT_DELETED":
+                                actionLabel = "deleted a comment";
+                                break;
                               default:
-                                actionLabel = log.description || log.action || "made a change";
+                                actionLabel =
+                                  log.description ||
+                                  log.action ||
+                                  "made a change";
                             }
 
-                            const hasStatusChange = log.oldStatus || log.newStatus;
+                            const hasStatusChange =
+                              log.oldStatus || log.newStatus;
                             const oldStatusValue = log.oldStatus || "None";
                             const newStatusValue = log.newStatus || "—";
 
                             return (
-                              <div key={log.id ?? index} className="tk-activity-item">
-                                <div className="tk-activity-avatar">{actorInitials}</div>
+                              <div
+                                key={log.id ?? index}
+                                className="tk-activity-item"
+                              >
+                                <div className="tk-activity-avatar">
+                                  {actorInitials}
+                                </div>
 
                                 <div className="tk-activity-content">
                                   <div className="tk-activity-text">
                                     <strong>{actorName}</strong> {actionLabel}
                                   </div>
-                                  <div className="tk-activity-meta">{timeAgo(log.createdAt)}</div>
+                                  <div className="tk-activity-meta">
+                                    {timeAgo(log.createdAt)}
+                                  </div>
 
                                   {hasStatusChange && (
                                     <div className="tk-activity-change">
-                                      <span className="tk-change-old">{oldStatusValue}</span>
+                                      <span className="tk-change-old">
+                                        {oldStatusValue}
+                                      </span>
                                       <span className="tk-change-arrow">→</span>
-                                      <span className="tk-change-new">{newStatusValue}</span>
+                                      <span className="tk-change-new">
+                                        {newStatusValue}
+                                      </span>
                                     </div>
                                   )}
                                 </div>
@@ -1259,30 +1595,35 @@ const [filterSearch, setFilterSearch] = useState("");
                     </>
                   )}
                 </div>
-
               </div>
 
-              {/* Right column: status, assignee, priority, project, due date */}
               <div className="tk-drawer-right">
-
                 {/* Status */}
                 <div className="tk-drawer-detail-row">
                   <span className="tk-drawer-detail-label">Status</span>
                   <select
                     className="tk-drawer-select"
                     value={formData.status}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                    disabled={!canManage && !USER_STATUS_FLOW[drawerTask.status]?.length}
+                    onChange={(e) =>
+                      setFormData({ ...formData, status: e.target.value })
+                    }
+                    disabled={
+                      !canManage && !USER_STATUS_FLOW[drawerTask.status]?.length
+                    }
                   >
                     {COLUMNS.map((col) => {
                       if (!canManage) {
-                        const allowedStatuses = USER_STATUS_FLOW[drawerTask.status] ?? [];
+                        const allowedStatuses =
+                          USER_STATUS_FLOW[drawerTask.status] ?? [];
                         const isCurrentStatus = col.id === drawerTask.status;
                         return (
                           <option
                             key={col.id}
                             value={col.id}
-                            disabled={!isCurrentStatus && !allowedStatuses.includes(col.id)}
+                            disabled={
+                              !isCurrentStatus &&
+                              !allowedStatuses.includes(col.id)
+                            }
                           >
                             {col.label}
                           </option>
@@ -1304,11 +1645,18 @@ const [filterSearch, setFilterSearch] = useState("");
                     <select
                       className="tk-drawer-select"
                       value={formData.assignedToId}
-                      onChange={(e) => setFormData({ ...formData, assignedToId: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          assignedToId: e.target.value,
+                        })
+                      }
                     >
                       <option value="">Unassigned</option>
                       {getUsersForProject(formData.projectId).map((u) => (
-                        <option key={u.id} value={u.id}>{u.name}</option>
+                        <option key={u.id} value={u.id}>
+                          {u.name}
+                        </option>
                       ))}
                     </select>
                   ) : (
@@ -1318,7 +1666,9 @@ const [filterSearch, setFilterSearch] = useState("");
                   )}
                   {(() => {
                     const pid = drawerTask.projectId ?? drawerTask.project?.id;
-                    const proj = projects.find(p => String(p.id) === String(pid));
+                    const proj = projects.find(
+                      (p) => String(p.id) === String(pid),
+                    );
                     return proj?.team?.name ? (
                       <span className="tk-assignee-team">{proj.team.name}</span>
                     ) : null;
@@ -1332,14 +1682,20 @@ const [filterSearch, setFilterSearch] = useState("");
                     <select
                       className="tk-drawer-select"
                       value={formData.priority}
-                      onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({ ...formData, priority: e.target.value })
+                      }
                     >
                       {PRIORITIES.map((priority) => (
-                        <option key={priority} value={priority}>{priority}</option>
+                        <option key={priority} value={priority}>
+                          {priority}
+                        </option>
                       ))}
                     </select>
                   ) : (
-                    <span className={`tk-priority-badge p-${drawerTask.priority?.toLowerCase()}`}>
+                    <span
+                      className={`tk-priority-badge p-${drawerTask.priority?.toLowerCase()}`}
+                    >
                       {drawerTask.priority}
                     </span>
                   )}
@@ -1352,16 +1708,22 @@ const [filterSearch, setFilterSearch] = useState("");
                     <select
                       className="tk-drawer-select"
                       value={formData.projectId}
-                      onChange={(e) => setFormData({ ...formData, projectId: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({ ...formData, projectId: e.target.value })
+                      }
                     >
                       <option value="">None</option>
                       {projects.map((project) => (
-                        <option key={project.id} value={project.id}>{project.name}</option>
+                        <option key={project.id} value={project.id}>
+                          {project.name}
+                        </option>
                       ))}
                     </select>
                   ) : (
                     <span className="tk-drawer-detail-value">
-                      {projects.find((p) => String(p.id) === String(drawerTask.projectId))?.name || "—"}
+                      {projects.find(
+                        (p) => String(p.id) === String(drawerTask.projectId),
+                      )?.name || "—"}
                     </span>
                   )}
                 </div>
@@ -1374,11 +1736,17 @@ const [filterSearch, setFilterSearch] = useState("");
                       type="date"
                       className="tk-drawer-select"
                       value={formData.dueDate}
-                      onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({ ...formData, dueDate: e.target.value })
+                      }
                     />
                   ) : (
-                    <span className={`tk-drawer-detail-value${drawerTask.dueDate ? " tk-due-value" : ""}`}>
-                      {drawerTask.dueDate ? timeAgo(drawerTask.dueDate) : "None"}
+                    <span
+                      className={`tk-drawer-detail-value${drawerTask.dueDate ? " tk-due-value" : ""}`}
+                    >
+                      {drawerTask.dueDate
+                        ? timeAgo(drawerTask.dueDate)
+                        : "None"}
                     </span>
                   )}
                 </div>
@@ -1387,7 +1755,11 @@ const [filterSearch, setFilterSearch] = useState("");
                 {!canManage && (
                   <button
                     className="btn-primary"
-                    style={{ padding: "5px 12px", fontSize: "12px", marginTop: "16px" }}
+                    style={{
+                      padding: "5px 12px",
+                      fontSize: "12px",
+                      marginTop: "16px",
+                    }}
                     onClick={handleDrawerSave}
                   >
                     Update Status
@@ -1402,10 +1774,15 @@ const [filterSearch, setFilterSearch] = useState("");
       {/* Create / Edit Task Modal */}
       {showModal && (
         <div className="modal-overlay" onClick={closeModal}>
-          <div className="modal-content tk-modal" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="modal-content tk-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="modal-header">
               <h2>{editingTask ? "Edit Issue" : "Create Issue"}</h2>
-              <button onClick={closeModal} className="btn-close">×</button>
+              <button onClick={closeModal} className="btn-close">
+                ×
+              </button>
             </div>
 
             <form onSubmit={handleSubmit}>
@@ -1416,7 +1793,9 @@ const [filterSearch, setFilterSearch] = useState("");
                   name="title"
                   type="text"
                   value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, title: e.target.value })
+                  }
                   required
                   placeholder="Task title"
                 />
@@ -1428,7 +1807,9 @@ const [filterSearch, setFilterSearch] = useState("");
                   id="task-desc"
                   name="description"
                   value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, description: e.target.value })
+                  }
                   placeholder="Describe the task..."
                   rows="3"
                 />
@@ -1441,10 +1822,14 @@ const [filterSearch, setFilterSearch] = useState("");
                     id="task-status"
                     name="status"
                     value={formData.status}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, status: e.target.value })
+                    }
                   >
                     {COLUMNS.map((col) => (
-                      <option key={col.id} value={col.id}>{col.label}</option>
+                      <option key={col.id} value={col.id}>
+                        {col.label}
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -1455,10 +1840,14 @@ const [filterSearch, setFilterSearch] = useState("");
                     id="task-priority"
                     name="priority"
                     value={formData.priority}
-                    onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, priority: e.target.value })
+                    }
                   >
                     {PRIORITIES.map((priority) => (
-                      <option key={priority} value={priority}>{priority}</option>
+                      <option key={priority} value={priority}>
+                        {priority}
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -1473,13 +1862,19 @@ const [filterSearch, setFilterSearch] = useState("");
                     value={formData.projectId}
                     onChange={(e) => {
                       const pid = e.target.value;
-                      setFormData({ ...formData, projectId: pid, assignedToId: "" });
+                      setFormData({
+                        ...formData,
+                        projectId: pid,
+                        assignedToId: "",
+                      });
                       if (pid) loadProjectMembers(pid);
                     }}
                   >
                     <option value="">Select project</option>
                     {projects.map((project) => (
-                      <option key={project.id} value={project.id}>{project.name}</option>
+                      <option key={project.id} value={project.id}>
+                        {project.name}
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -1490,11 +1885,15 @@ const [filterSearch, setFilterSearch] = useState("");
                     id="task-assignee"
                     name="assignedToId"
                     value={formData.assignedToId}
-                    onChange={(e) => setFormData({ ...formData, assignedToId: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, assignedToId: e.target.value })
+                    }
                   >
                     <option value="">— Unassigned —</option>
                     {getUsersForProject(formData.projectId).map((u) => (
-                      <option key={u.id} value={u.id}>{u.name}</option>
+                      <option key={u.id} value={u.id}>
+                        {u.name}
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -1507,12 +1906,18 @@ const [filterSearch, setFilterSearch] = useState("");
                   name="dueDate"
                   type="date"
                   value={formData.dueDate}
-                  onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, dueDate: e.target.value })
+                  }
                 />
               </div>
 
               <div className="modal-actions">
-                <button type="button" onClick={closeModal} className="btn-secondary">
+                <button
+                  type="button"
+                  onClick={closeModal}
+                  className="btn-secondary"
+                >
                   Cancel
                 </button>
                 <button type="submit" className="btn-primary">
