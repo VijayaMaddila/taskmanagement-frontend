@@ -91,6 +91,13 @@ function Register() {
 
   return (
     <div className="auth-container">
+      <Link to="/" className="auth-back-btn">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M10 3L5 8l5 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+        Home
+      </Link>
+
       <div className="auth-card">
         <h2>Register</h2>
 
@@ -180,9 +187,6 @@ function Register() {
           Already have an account? <Link to="/login">Login here</Link>
         </p>
 
-        <div className="back-home">
-          <Link to="/" className="back-home-btn">← Back to Home</Link>
-        </div>
       </div>
     </div>
   );

@@ -71,6 +71,11 @@ function Projects() {
   const [memberFormError,setMemberFormError]= useState('');
   const [creating,       setCreating]       = useState(false);
 
+  // Assign team to existing project
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [assignProject,   setAssignProject]   = useState(null);
+  const [assignTeamName,  setAssignTeamName]  = useState('');
+
   const canManage = canManageProjects();
   const user = getStoredUser();
   const navigate = useNavigate();
@@ -278,6 +283,73 @@ function Projects() {
     setMemberFormError('');
   };
 
+  const openAssignModal = (project) => {
+    setAssignProject(project);
+    setAssignTeamName(project.team?.name || '');
+    setPendingMembers([]);
+    setMemberForm({ type: 'direct', userId: '', email: '', role: 'DEVELOPER' });
+    setMemberFormError('');
+    setAddTab('direct');
+    fetchAll('/api/users').then(setAllUsers).catch(() => {});
+    setShowAssignModal(true);
+  };
+
+  const closeAssignModal = () => {
+    setShowAssignModal(false);
+    setAssignProject(null);
+    setPendingMembers([]);
+    setMemberFormError('');
+  };
+
+  const handleAssignTeam = async () => {
+    setCreating(true);
+    try {
+      let finalMembers = pendingMembers.map(({ _display, ...rest }) => rest);
+      const formHasUser = memberForm.type === 'direct' ? !!memberForm.userId : !!memberForm.email.trim();
+      if (formHasUser) {
+        const autoEntry = memberForm.type === 'direct'
+          ? { userId: Number(memberForm.userId), role: memberForm.role }
+          : { email: memberForm.email.trim(), role: memberForm.role };
+        finalMembers = [...finalMembers, autoEntry];
+      }
+
+      const directMembers = finalMembers.filter(m => m.userId);
+      const inviteMembers  = finalMembers.filter(m => m.email);
+
+      let teamId = assignProject.teamId;
+
+      if (!teamId) {
+        // Create a new team and link it to the project
+        const teamRes = await apiPost('/api/teams', { name: assignTeamName.trim() || `${assignProject.name} Team` });
+        if (!teamRes.ok) { alert('Failed to create team'); setCreating(false); return; }
+        const teamData = await teamRes.json();
+        teamId = teamData.id;
+
+        // Link team to project
+        await apiPut(`/api/projects/${assignProject.id}`, {
+          name: assignProject.name,
+          description: assignProject.description || '',
+          startDate: assignProject.startDate || null,
+          endDate: assignProject.endDate || null,
+          createdById: Number(user.id),
+          slackWebhookUrl: assignProject.slackWebhookUrl || null,
+          teamId,
+        });
+      }
+
+      for (const m of directMembers) {
+        await apiPost(`/api/teams/${teamId}/members`, { userId: m.userId, role: m.role });
+      }
+      for (const m of inviteMembers) {
+        await apiPost('/api/teams/invite/send', { projectId: assignProject.id, email: m.email, role: m.role });
+      }
+
+      fetchProjects();
+      closeAssignModal();
+    } catch (e) { console.error(e); }
+    setCreating(false);
+  };
+
   const filteredProjects = projects.filter((p) =>
     p.name.toLowerCase().includes(search.toLowerCase()) ||
     (p.description || "").toLowerCase().includes(search.toLowerCase())
@@ -440,6 +512,11 @@ function Projects() {
 
                     {canManage && (
                       <div className="project-actions">
+                        <button onClick={(e) => { e.stopPropagation(); openAssignModal(project); }} className="btn-icon" title="Assign Team">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M6.25 6.375a4.125 4.125 0 118.25 0 4.125 4.125 0 01-8.25 0zM3.25 19.125a7.125 7.125 0 0114.25 0v.003l-.001.119a.75.75 0 01-.363.63 13.067 13.067 0 01-6.761 1.873c-2.472 0-4.786-.684-6.76-1.873a.75.75 0 01-.364-.63l-.001-.122zM19.75 7.5a.75.75 0 00-1.5 0v2.25H16a.75.75 0 000 1.5h2.25v2.25a.75.75 0 001.5 0v-2.25H22a.75.75 0 000-1.5h-2.25V7.5z" />
+                          </svg>
+                        </button>
                         <button onClick={(e) => { e.stopPropagation(); openModal(project); }} className="btn-icon">
                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M21.731 2.269a2.625 2.625 0 00-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 000-3.712zM19.513 8.199l-3.712-3.712-8.4 8.4a5.25 5.25 0 00-1.32 2.214l-.8 2.685a.75.75 0 00.933.933l2.685-.8a5.25 5.25 0 002.214-1.32l8.4-8.4z" />
@@ -530,7 +607,19 @@ function Projects() {
                     </div>
                     {(() => {
                       const nonAdmins = members.filter(m => m.role !== 'ADMIN');
-                      if (nonAdmins.length === 0) return <span className="no-members">No members yet</span>;
+                      if (nonAdmins.length === 0) return (
+                        <div className="pj-no-members-wrap">
+                          <span className="no-members">No members yet</span>
+                          {canManage && (
+                            <button
+                              className="pj-assign-team-btn"
+                              onClick={(e) => { e.stopPropagation(); openAssignModal(project); }}
+                            >
+                              + Assign Team
+                            </button>
+                          )}
+                        </div>
+                      );
 
                       return (
                         <div className="pj-avatar-stack">
@@ -905,6 +994,122 @@ function Projects() {
         onConfirm={handleDelete}
         onCancel={() => setDeleteTarget(null)}
       />
+    )}
+
+    {/* Assign Team Modal */}
+    {showAssignModal && assignProject && (
+      <div className="modal-overlay" onClick={closeAssignModal}>
+        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-header">
+            <h2>Assign Team — {assignProject.name}</h2>
+            <button onClick={closeAssignModal} className="btn-close">×</button>
+          </div>
+
+          <div className="pj-add-team">
+            <div className="form-group">
+              <label>Team Name</label>
+              <input
+                type="text"
+                value={assignTeamName}
+                onChange={e => setAssignTeamName(e.target.value)}
+                placeholder={`${assignProject.name} Team`}
+              />
+            </div>
+
+            <div className="pj-team-tabs">
+              <button
+                className={`pj-team-tab ${addTab === 'direct' ? 'pj-team-tab--active' : ''}`}
+                onClick={() => { setAddTab('direct'); setMemberForm(f => ({ ...f, type: 'direct', userId: '', email: '' })); setMemberFormError(''); }}
+              >
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                  <circle cx="7" cy="5" r="3" stroke="currentColor" strokeWidth="1.3" />
+                  <path d="M2 14c0-2.761 2.239-5 5-5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+                  <path d="M12 10v4M10 12h4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                </svg>
+                Add Existing User
+              </button>
+              <button
+                className={`pj-team-tab ${addTab === 'invite' ? 'pj-team-tab--active' : ''}`}
+                onClick={() => { setAddTab('invite'); setMemberForm(f => ({ ...f, type: 'invite', userId: '', email: '' })); setMemberFormError(''); }}
+              >
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                  <path d="M2 4h12v9a1 1 0 01-1 1H3a1 1 0 01-1-1V4z" stroke="currentColor" strokeWidth="1.3" />
+                  <path d="M2 4l6 5 6-5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+                </svg>
+                Invite by Email
+              </button>
+            </div>
+
+            <form onSubmit={handleAddMember}>
+              {memberFormError && <div className="pj-team-error">{memberFormError}</div>}
+              <div className="form-row">
+                {addTab === 'direct' ? (
+                  <div className="form-group">
+                    <label>User *</label>
+                    <select
+                      value={memberForm.userId}
+                      onChange={e => setMemberForm({ ...memberForm, userId: e.target.value })}
+                    >
+                      <option value="">Select a user</option>
+                      {allUsers.map(u => (
+                        <option key={u.id} value={u.id}>{u.username} — {u.email}</option>
+                      ))}
+                    </select>
+                  </div>
+                ) : (
+                  <div className="form-group">
+                    <label>Email *</label>
+                    <input
+                      type="email"
+                      value={memberForm.email}
+                      onChange={e => setMemberForm({ ...memberForm, email: e.target.value })}
+                      placeholder="colleague@example.com"
+                    />
+                  </div>
+                )}
+                <div className="form-group">
+                  <label>Role</label>
+                  <select
+                    value={memberForm.role}
+                    onChange={e => setMemberForm({ ...memberForm, role: e.target.value })}
+                  >
+                    <option value="DEVELOPER">Developer</option>
+                    <option value="ADMIN">Admin</option>
+                  </select>
+                </div>
+              </div>
+              <button type="submit" className="pj-add-member-btn">+ Add to List</button>
+            </form>
+
+            {pendingMembers.length > 0 && (
+              <div className="pj-pending-list">
+                <p className="pj-pending-label">Members to add ({pendingMembers.length})</p>
+                {pendingMembers.map((m, i) => (
+                  <div key={i} className="pj-pending-row">
+                    <div className="pj-pending-info">
+                      <span className="pj-pending-name">{m._display}</span>
+                      <span className="pj-pending-role">{m.role}</span>
+                      <span className="pj-pending-type">{m.email ? 'Invite' : 'Direct'}</span>
+                    </div>
+                    <button
+                      type="button"
+                      className="pj-remove-member"
+                      onClick={() => setPendingMembers(prev => prev.filter((_, idx) => idx !== i))}
+                    >×</button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="modal-actions pj-team-actions">
+              <button type="button" className="btn-secondary" onClick={closeAssignModal}>Cancel</button>
+              <button type="button" className="btn-primary" onClick={handleAssignTeam} disabled={creating}>
+                {creating ? 'Assigning...' : `Assign${pendingMembers.length > 0 ? ` ${pendingMembers.length} Member${pendingMembers.length > 1 ? 's' : ''}` : ' Team'}`}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     )}
     </div>
   );

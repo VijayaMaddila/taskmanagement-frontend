@@ -45,14 +45,6 @@ const ICONS = {
       <path d="M10.5 14c0-1.5.8-2.8 2-3.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
     </svg>
   ),
-  users: (
-    <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
-      <circle cx="6" cy="5" r="3" stroke="currentColor" strokeWidth="1.3" />
-      <path d="M1 14c0-2.761 2.239-5 5-5h1" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
-      <circle cx="12" cy="10" r="3" stroke="currentColor" strokeWidth="1.3" />
-      <path d="M12 8.5V10l1 1" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  ),
 };
 
 export default function Sidebar() {
@@ -82,7 +74,6 @@ export default function Sidebar() {
     { path: "/board",    label: "Tasks",           icon: ICONS.tasks    },
     { path: "/projects", label: "Projects",         icon: ICONS.projects },
     { path: "/team",     label: "Team",             icon: ICONS.team     },
-    ...(isAdmin ? [{ path: "/users", label: "User Management", icon: ICONS.users }] : []),
   ];
 
   return (

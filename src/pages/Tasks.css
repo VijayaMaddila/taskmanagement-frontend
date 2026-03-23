@@ -46,6 +46,63 @@
 .tk-create-btn:hover { background: #4f46e5; }
 
 /* ── Project selector tabs ── */
+.tk-project-tabs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 32px;
+  background: #fff;
+  border-bottom: 1px solid #e5e7eb;
+  flex-shrink: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.tk-project-tabs::-webkit-scrollbar { display: none; }
+
+.tk-project-tab {
+  flex-shrink: 0;
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  color: #6b7280;
+  font-size: 12.5px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.tk-project-tab:hover {
+  border-color: #c7d2fe;
+  background: #f5f3ff;
+  color: #6366f1;
+}
+.tk-project-tab.active {
+  background: linear-gradient(135deg, #6366f1, #a855f7);
+  border-color: transparent;
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(99,102,241,0.25);
+}
+
+.tk-tab-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: rgba(0,0,0,0.08);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  margin-left: 5px;
+}
+.tk-project-tab.active .tk-tab-count {
+  background: rgba(255,255,255,0.25);
+}
 
 /* ── Filter bar ── */
 .tk-filterbar {
@@ -68,20 +125,6 @@
 }
 .tk-search-input:focus { border-color: #6366f1; background: #fff; width: 220px; }
 
-.tk-mytasks-btn {
-  display: flex; align-items: center; gap: 6px;
-  padding: 6px 12px; border: 1px solid #e5e7eb; border-radius: 7px;
-  font-size: 12.5px; font-weight: 600; font-family: inherit;
-  background: #fff; color: #6b7280; cursor: pointer; transition: all 0.15s;
-}
-.tk-mytasks-btn:hover { border-color: #6366f1; color: #6366f1; }
-.tk-mytasks-btn.active { background: #eef2ff; border-color: #6366f1; color: #6366f1; }
-.tk-mytasks-avatar {
-  width: 18px; height: 18px; border-radius: 50%;
-  background: linear-gradient(135deg, #6366f1, #a855f7);
-  color: #fff; font-size: 9px; font-weight: 700;
-  display: flex; align-items: center; justify-content: center;
-}
 
 .tk-filter-divider { width: 1px; height: 20px; background: #e5e7eb; flex-shrink: 0; }
 .tk-clear-btn {
@@ -300,16 +343,24 @@
   overflow-y: auto;
 }
 
-.tk-list-header {
+/* 7 columns: title | status | priority | assignee | project | due | action */
+.tk-list-header,
+.tk-list-row {
   display: grid;
-  grid-template-columns: 1fr 130px 110px 140px 100px 90px;
-  padding: 10px 16px;
-  font-size: 0.72rem;
-  font-weight: 600;
+  grid-template-columns: minmax(0, 1fr) 110px 95px 120px 120px 80px 40px;
+  column-gap: 4px;
+  align-items: center;
+  padding: 0 16px;
+}
+
+.tk-list-header {
+  height: 38px;
+  font-size: 0.7rem;
+  font-weight: 700;
   color: #9ca3af;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  border-bottom: 2px solid #e5e7eb;
+  letter-spacing: 0.06em;
+  border-bottom: 1.5px solid #e5e7eb;
   position: sticky;
   top: 0;
   background: #f5f6fa;
@@ -317,45 +368,111 @@
 }
 
 .tk-list-row {
-  display: grid;
-  grid-template-columns: 1fr 130px 110px 140px 100px 90px;
-  padding: 12px 16px;
+  min-height: 52px;
   border-bottom: 1px solid #f3f4f6;
-  align-items: center;
   cursor: pointer;
-  transition: background 0.1s;
-  border-radius: 8px;
-  gap: 8px;
+  transition: background 0.12s, box-shadow 0.12s;
 }
 
-.tk-list-row:hover { background: #ffffff; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+.tk-list-row:hover {
+  background: #ffffff;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.07);
+  z-index: 1;
+  position: relative;
+}
 
+/* Delete icon — always visible */
+.tk-list-action { opacity: 1; display: flex; align-items: center; }
+
+/* Title cell */
 .tk-list-title {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 0.85rem;
-  color: #1a1a2e;
-  font-weight: 500;
   overflow: hidden;
 }
 
-.tk-list-title span:last-child {
+.tk-priority-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.tk-list-title-text {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #111827;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.tk-list-project { font-size: 0.8rem; color: #6b7280; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Assignee cell */
+.tk-list-assignee {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+}
+
+.tk-list-assignee-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6366f1, #a855f7);
+  color: #fff;
+  font-size: 0.62rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.tk-list-assignee-name {
+  font-size: 0.8rem;
+  color: #374151;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tk-list-unassigned { font-size: 0.82rem; color: #d1d5db; }
+
+/* Project cell */
+.tk-list-project {
+  font-size: 0.8rem;
+  color: #6b7280;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Due date cell */
+.tk-list-due {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.78rem;
+  color: #9ca3af;
+  white-space: nowrap;
+}
+
+.tk-list-due--overdue {
+  color: #ef4444;
+  font-weight: 600;
+}
 
 /* ── Status badges ── */
 .tk-status-badge {
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   font-weight: 600;
   padding: 3px 8px;
   border-radius: 5px;
   text-transform: capitalize;
   white-space: nowrap;
+  display: inline-block;
 }
 
 .tk-status-badge.s-todo        { background: #f3f4f6; color: #6b7280; }
@@ -370,99 +487,141 @@
   font-size: 0.9rem;
 }
 
+/* Delete icon button in list */
 .tk-del-btn {
-  font-size: 0.75rem;
-  color: #ef4444;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  border-radius: 5px;
-  padding: 4px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: #d1d5db;
   cursor: pointer;
-  transition: background 0.15s;
-  white-space: nowrap;
+  transition: all 0.15s;
+  padding: 0;
 }
 
-.tk-del-btn:hover { background: #fee2e2; }
+.tk-del-btn:hover {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #ef4444;
+}
 
 /* ── Modal ── */
 .tk-modal { max-width: 520px; }
 
 /* ── Responsive ── */
 
-/* Tablet */
+/* Large tablet */
 @media (max-width: 1100px) {
+  .tk-topbar { padding: 18px 24px 12px; }
+  .tk-filterbar { padding: 8px 24px; }
+  .tk-board { padding: 12px 24px 28px; }
+  .tk-list-view { padding: 0 24px 28px; }
+  /* Hide "Project" col (5th) */
   .tk-list-header, .tk-list-row {
-    grid-template-columns: 1fr 110px 100px 100px 80px;
+    grid-template-columns: minmax(0, 1fr) 110px 95px 120px 80px 40px;
   }
-  .tk-list-header span:nth-child(4),
-  .tk-list-row span:nth-child(4) { display: none; }
+  .tk-list-header span:nth-child(5),
+  .tk-list-row span:nth-child(5) { display: none; }
 }
 
-/* Mobile landscape / small tablet */
+/* Tablet / mobile landscape */
 @media (max-width: 768px) {
-  /* Topbar */
-  .tk-topbar {
-    flex-wrap: wrap;
-    gap: 10px;
-    padding: 14px 16px 12px;
-  }
-  .tk-topbar-left { flex: 1; }
-  .tk-topbar-right { width: 100%; justify-content: space-between; }
-  .tk-create-btn { flex: 1; justify-content: center; }
+  /* Topbar — keep title and button on one row */
+  .tk-topbar { padding: 14px 16px 12px; gap: 8px; }
+  .tk-topbar-left { flex: 1; min-width: 0; }
+  .tk-page-title { font-size: 18px; }
+  .tk-topbar-right { flex-shrink: 0; }
+  .tk-create-btn { padding: 8px 14px; font-size: 12.5px; }
 
-  /* Filter bar */
-  .tk-filterbar { padding: 8px 16px; gap: 6px; }
-  .tk-search-wrap { flex: 1; }
+  /* Project tabs */
+  .tk-project-tabs { padding: 8px 16px; gap: 5px; }
+  .tk-project-tab { padding: 5px 12px; font-size: 12px; }
+
+  /* Filter bar — search + view toggle on row 1, filters on row 2 */
+  .tk-filterbar {
+    padding: 8px 16px;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .tk-filter-divider { display: none; }
+  .tk-search-wrap { flex: 1 1 calc(100% - 120px); min-width: 140px; }
   .tk-search-input { width: 100%; }
   .tk-search-input:focus { width: 100%; }
+  .tk-view-toggle { flex-shrink: 0; margin-left: auto; }
+  .tk-filter { flex: 1 1 auto; min-width: 100px; }
+  .tk-clear-btn { align-self: center; }
 
-  /* Board */
-  .tk-board { padding: 12px 16px 24px; gap: 12px; }
-  .tk-column { flex: 0 0 260px; }
+  /* Board — narrower columns, still horizontal scroll */
+  .tk-board { padding: 12px 16px 24px; gap: 10px; }
+  .tk-column { flex: 0 0 248px; }
 
-  /* List view */
+  /* List view — 4 columns: title, status, priority, due (hide assignee, project, action) */
   .tk-list-view { padding: 0 16px 24px; }
   .tk-list-header, .tk-list-row {
-    grid-template-columns: 1fr 100px 80px;
+    grid-template-columns: minmax(0, 1fr) 105px 85px 75px;
+    padding: 0 12px;
+    column-gap: 4px;
   }
-  .tk-list-header span:nth-child(n+4),
-  .tk-list-row span:nth-child(n+4) { display: none; }
+  .tk-list-header span:nth-child(n+5),
+  .tk-list-row span:nth-child(n+5) { display: none; }
 
   /* Drawer — bottom sheet */
-  .tk-drawer-overlay {
-    align-items: flex-end;
-    padding: 0;
-  }
+  .tk-drawer-overlay { align-items: flex-end; padding: 0; }
   .tk-drawer {
     width: 100%;
     max-width: 100%;
-    max-height: 92vh;
+    max-height: 93vh;
     border-radius: 20px 20px 0 0;
     animation: drawerSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   }
-  .tk-drawer-body { flex-direction: column; }
+  /* Pull handle */
+  .tk-drawer::before {
+    content: '';
+    display: block;
+    width: 36px;
+    height: 4px;
+    background: #d1d5db;
+    border-radius: 2px;
+    margin: 10px auto 0;
+    flex-shrink: 0;
+  }
+  .tk-drawer-header { padding: 10px 16px; }
+  .tk-drawer-body { flex-direction: column; overflow: hidden; }
+  /* Left: scrollable content area */
   .tk-drawer-left {
     border-right: none;
     border-bottom: 1px solid #f3f4f6;
-    padding: 16px;
-    max-height: 50vh;
+    padding: 16px 16px 12px;
+    overflow-y: auto;
+    flex: 1;
+    max-height: 52vh;
   }
+  /* Right: 2-col grid of detail rows */
   .tk-drawer-right {
     width: 100%;
     flex-direction: row;
     flex-wrap: wrap;
     gap: 0;
-    padding: 12px 16px;
+    padding: 8px 16px 16px;
+    flex-shrink: 0;
+    overflow-y: auto;
+    max-height: 36vh;
   }
   .tk-drawer-detail-row {
-    flex: 1 1 calc(50% - 8px);
+    flex: 1 1 50%;
     min-width: 140px;
-    padding: 8px 0;
-    border-bottom: none;
-    border-right: 1px solid #f3f4f6;
+    padding: 8px 4px;
+    border-bottom: 1px solid #f3f4f6;
+    border-right: none;
   }
-  .tk-drawer-detail-row:nth-child(even) { padding-left: 12px; border-right: none; }
-  .tk-drawer-header { padding: 12px 16px; }
+  .tk-drawer-detail-row:nth-child(odd) { padding-right: 8px; border-right: 1px solid #f3f4f6; }
+  .tk-drawer-detail-row:nth-child(even) { padding-left: 8px; }
+  .tk-drawer-detail-row:last-child,
+  .tk-drawer-detail-row:nth-last-child(2):nth-child(odd) { border-bottom: none; }
 }
 
 @keyframes drawerSlideUp {
@@ -472,31 +631,59 @@
 
 /* Small phones */
 @media (max-width: 480px) {
+  /* Topbar */
   .tk-topbar { padding: 12px 12px 10px; }
-  .tk-page-title { font-size: 17px; }
+  .tk-page-title { font-size: 16px; }
   .tk-task-count { display: none; }
-  .tk-create-btn { font-size: 12px; padding: 7px 12px; }
+  .tk-create-btn { padding: 7px 12px; font-size: 12px; }
 
-  .tk-filterbar { padding: 6px 12px; }
-  .tk-filter { font-size: 12px; padding: 6px 8px; }
+  /* Project tabs */
+  .tk-project-tabs { padding: 6px 12px; gap: 4px; }
+  .tk-project-tab { padding: 4px 10px; font-size: 11.5px; }
+
+  /* Filter bar */
+  .tk-filterbar { padding: 6px 12px; gap: 6px; }
+  .tk-search-wrap { flex: 1 1 100%; }
+  .tk-view-toggle { margin-left: 0; }
   .tk-view-toggle button { padding: 5px 8px; font-size: 11px; }
+  .tk-filter { font-size: 12px; padding: 5px 8px; flex: 1 1 auto; min-width: 90px; }
+  .tk-clear-btn { font-size: 11px; padding: 5px 10px; }
 
-  .tk-board { padding: 10px 12px 20px; }
+  /* Board — full-width columns, scroll to see others */
+  .tk-board { padding: 10px 12px 20px; gap: 10px; }
   .tk-column { flex: 0 0 calc(100vw - 24px); }
   .tk-card { padding: 10px 11px; }
+  .tk-card-title { font-size: 0.82rem; }
 
+  /* List view — 2 columns: title + status */
   .tk-list-view { padding: 0 12px 20px; }
   .tk-list-header, .tk-list-row {
-    grid-template-columns: 1fr 80px;
-    padding: 10px 12px;
+    grid-template-columns: minmax(0, 1fr) 95px;
+    padding: 0 10px;
+    column-gap: 4px;
   }
   .tk-list-header span:nth-child(n+3),
   .tk-list-row span:nth-child(n+3) { display: none; }
+  .tk-list-row { min-height: 46px; }
 
-  .tk-drawer-left { padding: 12px; }
+  /* Drawer — single column stacked detail rows */
+  .tk-drawer-header { padding: 8px 12px; }
+  .tk-drawer-left { padding: 12px 12px 8px; max-height: 48vh; }
   .tk-drawer-title { font-size: 1rem; }
-  .tk-drawer-detail-row { flex: 1 1 100%; border-right: none; }
-  .tk-drawer-detail-row:nth-child(even) { padding-left: 0; }
+  .tk-drawer-title-input { font-size: 1rem; }
+  .tk-drawer-right { padding: 6px 12px 12px; max-height: 40vh; }
+  .tk-drawer-detail-row {
+    flex: 1 1 100%;
+    padding: 8px 0;
+    border-right: none !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+  /* Compact comment box */
+  .tk-drawer-comment-avatar { display: none; }
+  .tk-drawer-comment-box { gap: 0; }
+  .tk-drawer-comment-actions { padding-left: 0; }
+  .tk-drawer-save-row { gap: 8px; }
 }
 
 /* User status update modal */
@@ -759,6 +946,7 @@
   gap: 8px;
   margin-top: 8px;
   padding-left: 40px;
+  width: fit-content;
 }
 
 /* Save row */
@@ -768,6 +956,7 @@
   margin-top: 8px;
   padding-top: 16px;
   border-top: 1px solid #f3f4f6;
+  width: fit-content;
 }
 
 /* Right panel detail rows */

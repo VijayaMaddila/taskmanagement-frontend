@@ -189,7 +189,7 @@ function Tasks() {
   const [filterProject, setFilterProject] = useState(searchParams.get("project") || "");
   const [filterPriority, setFilterPriority] = useState("");
   const [filterAssignee, setFilterAssignee] = useState("");
-  const [filterSearch, setFilterSearch] = useState("");
+const [filterSearch, setFilterSearch] = useState("");
   const [dragOverCol, setDragOverCol] = useState(null);
   const [view, setView] = useState("kanban");
 
@@ -203,20 +203,12 @@ function Tasks() {
     loadAllData();
   }, []);
 
-  // Reload tasks and project members whenever the selected project changes.
-  // Also depends on projects.length so it retries if projects weren't loaded yet
-  // when the user first clicked a project tab (race condition on initial load).
+  // Load project members when the selected project changes
   useEffect(() => {
-    if (projects.length > 0) {
-      if (filterProject) {
-        loadTasks(filterProject);
-        loadProjectMembers(filterProject);
-      } else {
-        // "All Projects" selected — reload all workspace tasks
-        loadAllData();
-      }
+    if (filterProject) {
+      loadProjectMembers(filterProject);
     }
-  }, [filterProject, projects.length]);
+  }, [filterProject]);
 
   const normalizeTasks = (taskList) =>
     taskList.map((task) => ({
@@ -239,38 +231,6 @@ function Tasks() {
       };
     });
 
-  const getTasksEndpoint = (projectId) => {
-    if (projectId) return `/api/tasks/project/${projectId}`;
-    if (!canManage) return `/api/tasks/assignee/${user.id}`;
-    return "/api/tasks";
-  };
-
-  const loadTasks = async (projectId) => {
-    setLoading(true);
-    try {
-      const endpoint = getTasksEndpoint(projectId);
-      const taskList = await fetchAll(endpoint);
-      let normalized = normalizeTasks(taskList);
-      // If loading project-specific tasks, inject projectId/name in case backend omits them
-      if (projectId) {
-        const proj = projects.find((p) => String(p.id) === String(projectId));
-        normalized = normalized.map((t) => ({
-          ...t,
-          projectId: t.projectId ?? Number(projectId),
-          projectName: t.projectName ?? proj?.name ?? null,
-        }));
-      }
-      setTasks(injectProjectInfo(normalized, projects));
-    } catch (error) {
-      // fallback: filter from all tasks
-      try {
-        const taskList = await fetchAll("/api/tasks");
-        const normalized = normalizeTasks(taskList);
-        setTasks(projectId ? normalized.filter(t => String(t.projectId) === String(projectId)) : normalized);
-      } catch (e) { console.error(e); }
-    }
-    setLoading(false);
-  };
 
   const loadAllData = async () => {
     setLoading(true);
@@ -280,47 +240,38 @@ function Tasks() {
         fetchAll("/api/users"),
       ]);
 
-      // Filter projects to only those belonging to the current user
-      const myProjects = canManage
-        ? allProjects.filter((p) => String(p.createdById) === String(user.id))
-        : await (async () => {
-            const memberLists = await Promise.all(
-              allProjects.map((p) =>
-                fetchAll(`/api/projects/${p.id}/members`).catch(() => [])
-              )
-            );
-            return allProjects.filter((_, i) =>
-              memberLists[i].some(
-                (m) => String(m.userId ?? m.user?.id) === String(user.id)
-              )
-            );
-          })();
+      // Admins see all projects; members see only projects they belong to
+      let myProjects = allProjects;
+      if (!canManage && user.id) {
+        const memberLists = await Promise.all(
+          allProjects.map((p) =>
+            fetchAll(`/api/projects/${p.id}/members`).catch(() => [])
+          )
+        );
+        myProjects = allProjects.filter((_, i) =>
+          memberLists[i].some(
+            (m) => String(m.userId ?? m.user?.id ?? m.id) === String(user.id)
+          )
+        );
+      }
 
-      // Load tasks only for the user's projects
+      // Load tasks only from the user's projects
       const taskLists = await Promise.all(
         myProjects.map((p) =>
           fetchAll(`/api/tasks/project/${p.id}`)
-            .then((tasks) =>
-              tasks.map((t) => ({ ...t, projectId: t.projectId ?? p.id, projectName: t.projectName ?? p.name }))
-            )
+            .then((tasks) => tasks.map((t) => ({ ...t, projectId: t.projectId ?? p.id, projectName: t.projectName ?? p.name })))
             .catch(() => [])
         )
       );
 
       const allTasks = taskLists.flat();
       const normalized = normalizeTasks(allTasks);
-
-      setTasks(normalized);
+      setTasks(injectProjectInfo(normalized, myProjects));
       setProjects(myProjects);
       setUsers(userList.map((u) => ({
         id: u.id,
         name: u.name || u.username || u.email || `User #${u.id}`,
       })));
-
-      // Auto-select first project if none is selected via URL param
-      if (!filterProject && myProjects.length > 0) {
-        setFilterProject(String(myProjects[0].id));
-      }
     } catch (error) {
       console.error(error);
     }
@@ -586,34 +537,27 @@ function Tasks() {
     }
   };
 
+  // Apply non-project filters (priority, assignee, search) to a task list
+  const applySecondaryFilters = (taskList) =>
+    taskList.filter((task) => {
+      if (filterPriority && task.priority !== filterPriority) return false;
+      if (filterAssignee && String(task.assignedToId) !== String(filterAssignee)) return false;
+      if (filterSearch) {
+        const q = filterSearch.toLowerCase();
+        if (!task.title?.toLowerCase().includes(q) && !String(task.id).includes(filterSearch)) return false;
+      }
+      return true;
+    });
+
   // Filter tasks based on the active filter dropdowns and search text
-  const filtered = tasks.filter((task) => {
-    // Non-managers only see tasks assigned to themselves
-    if (!canManage && String(task.assignedToId) !== String(user.id)) {
-      return false;
-    }
-
-    if (filterProject && String(task.projectId) !== String(filterProject)) {
-      return false;
-    }
-
-    if (filterPriority && task.priority !== filterPriority) {
-      return false;
-    }
-
-    if (filterAssignee && String(task.assignedToId) !== String(filterAssignee)) {
-      return false;
-    }
-
-    if (filterSearch) {
-      const searchLower = filterSearch.toLowerCase();
-      const titleMatches = task.title?.toLowerCase().includes(searchLower);
-      const idMatches = String(task.id).includes(filterSearch);
-      if (!titleMatches && !idMatches) return false;
-    }
-
+  const filtered = applySecondaryFilters(tasks).filter((task) => {
+    if (filterProject && String(task.projectId) !== String(filterProject)) return false;
     return true;
   });
+
+  // Count for each project tab (respects search/priority/assignee but not project filter)
+  const getProjectCount = (projectId) =>
+    applySecondaryFilters(tasks).filter((t) => String(t.projectId) === String(projectId)).length;
 
   // Fetch team members for a project and cache them (keyed by projectId)
   const loadProjectMembers = async (projectId) => {
@@ -683,6 +627,29 @@ function Tasks() {
           </div>
         </header>
 
+        {/* Project tabs */}
+        {projects.length > 0 && (
+          <div className="tk-project-tabs">
+            <button
+              className={`tk-project-tab${!filterProject ? " active" : ""}`}
+              onClick={() => setFilterProject("")}
+            >
+              All Projects
+              <span className="tk-tab-count">{applySecondaryFilters(tasks).length}</span>
+            </button>
+            {projects.map((p) => (
+              <button
+                key={p.id}
+                className={`tk-project-tab${filterProject === String(p.id) ? " active" : ""}`}
+                onClick={() => setFilterProject(String(p.id))}
+              >
+                {p.name}
+                <span className="tk-tab-count">{getProjectCount(p.id)}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* Filter bar */}
         <div className="tk-filterbar">
           <div className="tk-search-wrap">
@@ -698,21 +665,7 @@ function Tasks() {
             />
           </div>
 
-
           <div className="tk-filter-divider" />
-
-          <select
-            className="tk-filter"
-            value={filterProject}
-            onChange={(e) => setFilterProject(e.target.value)}
-          >
-            <option value="">All Projects</option>
-            {projects.map((p) => (
-              <option key={p.id} value={String(p.id)}>
-                {p.name}
-              </option>
-            ))}
-          </select>
 
           <select
             className="tk-filter"
@@ -870,57 +823,87 @@ function Tasks() {
               <span>Title</span>
               <span>Status</span>
               <span>Priority</span>
+              <span>Assignee</span>
               <span>Project</span>
               <span>Due</span>
-              <span></span>
+              {canManage && <span></span>}
             </div>
 
             {filtered.length === 0 && (
               <div className="tk-empty-list">No tasks found</div>
             )}
 
-            {filtered.map((task) => (
-              <div key={task.id} className="tk-list-row" onClick={() => openEdit(task)}>
-                <span className="tk-list-title">
-                  <span
-                    className="tk-priority-dot"
-                    style={{ background: PRIORITY_COLOR[task.priority] || "#94a3b8" }}
-                  />
-                  {task.title}
-                </span>
-
-                <span>
-                  <span className={`tk-status-badge s-${task.status?.toLowerCase().replace("_", "-")}`}>
-                    {task.status?.replace("_", " ")}
+            {filtered.map((task) => {
+              const assigneeName = task.assigneeName || task.assignedTo?.username || task.assignedTo?.name || null;
+              const assigneeInitials = assigneeName
+                ? assigneeName.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2)
+                : null;
+              const dueDate = task.dueDate ? new Date(task.dueDate) : null;
+              const isOverdue = dueDate && dueDate < new Date() && task.status !== "DONE";
+              return (
+                <div key={task.id} className="tk-list-row" onClick={() => openEdit(task)}>
+                  <span className="tk-list-title">
+                    <span
+                      className="tk-priority-dot"
+                      style={{ background: PRIORITY_COLOR[task.priority] || "#94a3b8" }}
+                    />
+                    <span className="tk-list-title-text">{task.title}</span>
                   </span>
-                </span>
 
-                <span>
-                  <span className={`tk-priority-badge p-${task.priority?.toLowerCase()}`}>
-                    {task.priority}
+                  <span>
+                    <span className={`tk-status-badge s-${task.status?.toLowerCase().replace(/_/g, "-")}`}>
+                      {task.status?.replace(/_/g, " ")}
+                    </span>
                   </span>
-                </span>
 
-                <span className="tk-list-project">
-                  {task.projectName ||
-                    projects.find((p) => String(p.id) === String(task.projectId))?.name ||
-                    "—"}
-                </span>
+                  <span>
+                    <span className={`tk-priority-badge p-${task.priority?.toLowerCase()}`}>
+                      {task.priority}
+                    </span>
+                  </span>
 
-                <span className="tk-due">
-                  {task.dueDate ? timeAgo(task.dueDate) : "—"}
-                </span>
+                  <span className="tk-list-assignee">
+                    {assigneeInitials ? (
+                      <>
+                        <span className="tk-list-assignee-avatar">{assigneeInitials}</span>
+                        <span className="tk-list-assignee-name">{assigneeName}</span>
+                      </>
+                    ) : (
+                      <span className="tk-list-unassigned">—</span>
+                    )}
+                  </span>
 
-                {/* Stop click from opening the drawer when clicking the delete button */}
-                <span onClick={(e) => e.stopPropagation()}>
+                  <span className="tk-list-project">
+                    {task.projectName ||
+                      projects.find((p) => String(p.id) === String(task.projectId))?.name ||
+                      "—"}
+                  </span>
+
+                  <span className={`tk-list-due${isOverdue ? " tk-list-due--overdue" : ""}`}>
+                    {task.dueDate ? (
+                      <>
+                        <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
+                          <rect x="1" y="2" width="10" height="9" rx="1.5" stroke="currentColor" strokeWidth="1.2"/>
+                          <path d="M4 1v2M8 1v2M1 5h10" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+                        </svg>
+                        {timeAgo(task.dueDate)}
+                      </>
+                    ) : "—"}
+                  </span>
+
                   {canManage && (
-                    <button className="tk-del-btn" onClick={() => setDeleteTarget(task.id)}>
-                      Delete
-                    </button>
+                    <span className="tk-list-action" onClick={(e) => e.stopPropagation()}>
+                      <button className="tk-del-btn" onClick={() => setDeleteTarget(task.id)}>
+                        <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
+                          <path d="M2 4h10M5 4V2.5a.5.5 0 01.5-.5h3a.5.5 0 01.5.5V4M6 7v3M8 7v3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+                          <path d="M3 4l.7 7.3A1 1 0 004.7 12h4.6a1 1 0 001-.93L11 4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+                        </svg>
+                      </button>
+                    </span>
                   )}
-                </span>
-              </div>
-            ))}
+                </div>
+              );
+            })}
           </div>
         )}
       </main>
@@ -1001,6 +984,18 @@ function Tasks() {
                     </p>
                   )}
                 </div>
+
+                {/* Save / Cancel buttons — below description, managers only */}
+                {canManage && (
+                  <div className="tk-drawer-save-row">
+                    <button className="btn-primary" style={{ padding: "5px 12px", fontSize: "12px", width: "auto" }} onClick={handleDrawerSave}>
+                      Save changes
+                    </button>
+                    <button className="btn-secondary" style={{ padding: "5px 12px", fontSize: "12px", width: "auto" }} onClick={closeDrawer}>
+                      Cancel
+                    </button>
+                  </div>
+                )}
 
                 {/* Activity section with tab bar */}
                 <div className="tk-drawer-section">
@@ -1134,24 +1129,22 @@ function Tasks() {
                         />
                       </div>
 
-                      {comment && (
-                        <div className="tk-drawer-comment-actions">
-                          <button
-                            className="btn-primary"
-                            style={{ padding: "6px 14px", fontSize: "12px" }}
-                            onClick={handleCommentSave}
-                          >
-                            Save
-                          </button>
-                          <button
-                            className="btn-secondary"
-                            style={{ padding: "6px 14px", fontSize: "12px" }}
-                            onClick={() => setComment("")}
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      )}
+                      <div className="tk-drawer-comment-actions">
+                        <button
+                          className="btn-primary"
+                          style={{ padding: "4px 10px", fontSize: "11px", width: "auto" }}
+                          onClick={handleCommentSave}
+                        >
+                          Add
+                        </button>
+                        <button
+                          className="btn-secondary"
+                          style={{ padding: "4px 10px", fontSize: "11px", width: "auto" }}
+                          onClick={() => setComment("")}
+                        >
+                          Cancel
+                        </button>
+                      </div>
                     </>
                   )}
 
@@ -1220,17 +1213,6 @@ function Tasks() {
                   )}
                 </div>
 
-                {/* Save / Cancel buttons — managers only */}
-                {canManage && (
-                  <div className="tk-drawer-save-row">
-                    <button className="btn-primary" onClick={handleDrawerSave}>
-                      Save changes
-                    </button>
-                    <button className="btn-secondary" onClick={closeDrawer}>
-                      Cancel
-                    </button>
-                  </div>
-                )}
               </div>
 
               {/* Right column: status, assignee, priority, project, due date */}
@@ -1358,7 +1340,7 @@ function Tasks() {
                 {!canManage && (
                   <button
                     className="btn-primary"
-                    style={{ width: "100%", marginTop: "16px" }}
+                    style={{ padding: "5px 12px", fontSize: "12px", marginTop: "16px" }}
                     onClick={handleDrawerSave}
                   >
                     Update Status

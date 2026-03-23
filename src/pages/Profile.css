@@ -157,10 +157,28 @@
   gap: 20px;
 }
 
-@media (max-width: 680px) {
-  .pf-grid { grid-template-columns: 1fr; }
+@media (max-width: 768px) {
+  .pf-main { padding-top: 56px; }
   .pf-content { padding: 20px 16px; }
   .pf-header  { padding: 20px 16px 16px; }
+  .pf-loading { padding: 20px 16px; }
+}
+
+@media (max-width: 680px) {
+  .pf-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 480px) {
+  .pf-content { padding: 16px 12px; gap: 16px; }
+  .pf-header  { padding: 16px 12px 12px; }
+  .pf-loading { padding: 16px 12px; }
+  .pf-hero-content { flex-direction: column; align-items: flex-start; gap: 14px; padding: 20px 16px; }
+  .pf-hero-avatar { width: 54px; height: 54px; font-size: 20px; }
+  .pf-hero-name { font-size: 17px; }
+  .pf-title { font-size: 18px; }
+  .pf-card { padding: 16px; }
+  .pf-skeleton--card { height: 220px; }
+  .pf-skeleton-row { grid-template-columns: 1fr; }
 }
 
 /* ── Card ── */

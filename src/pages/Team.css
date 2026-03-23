@@ -1381,35 +1381,81 @@
 
 /* ── Responsive ── */
 @media (max-width: 1024px) {
+  .tm-header { padding: 16px 20px; }
+  .tm-project-cards { padding: 12px 20px; }
   .tm-groups-wrap, .tm-grid { padding: 16px 20px; }
   .tm-grid--narrow { max-width: 100%; }
 }
 
 @media (max-width: 768px) {
+  /* Header */
   .tm-header { padding: 14px 16px; flex-wrap: wrap; gap: 10px; }
   .tm-header-left { flex: 1 1 100%; }
+  .tm-title { font-size: 20px; }
+  .tm-header-actions { width: 100%; justify-content: flex-end; gap: 8px; }
   .tm-search-wrap { max-width: 100%; flex: 1 1 100%; }
-  .tm-header-actions { width: 100%; justify-content: flex-end; }
-  .tm-groups-wrap, .tm-grid { padding: 12px 16px; }
-  .tm-grid { grid-template-columns: 1fr; }
-  .tm-grid--narrow { max-width: 100%; }
-  .tm-filter-bar { padding: 8px 16px; flex-wrap: wrap; gap: 6px; }
   .tm-search-input { width: 100%; }
-  .tm-project-tabs { padding: 0 16px; overflow-x: auto; flex-wrap: nowrap; white-space: nowrap; }
-  .tm-modal { width: calc(100vw - 24px); max-width: 100%; max-height: 90vh; overflow-y: auto; }
-  .tm-modal-overlay { padding: 12px; align-items: flex-end; }
-  .tm-member-row { flex-wrap: wrap; gap: 10px; }
-  .tm-stat-grid { grid-template-columns: repeat(2, 1fr); }
+
+  /* Project tabs row */
+  .tm-project-cards { padding: 10px 16px; gap: 8px; }
+
+  /* Filters */
+  .tm-filter-bar { padding: 8px 16px; flex-wrap: wrap; gap: 6px; }
+
+  /* Groups / list view */
+  .tm-groups-wrap { padding: 12px 16px; }
+  .tm-group-header { padding: 12px 16px; }
+  .tm-member-row { padding: 10px 16px; gap: 10px; }
+
+  /* Card grid */
+  .tm-grid { grid-template-columns: 1fr 1fr; padding: 12px 16px; }
+  .tm-grid--narrow { max-width: 100%; grid-template-columns: 1fr 1fr; }
+
+  /* Stats inside card */
+  .tm-stats-row { grid-template-columns: repeat(2, 1fr); }
+
+  /* Invite / add modal — bottom sheet */
+  .tm-modal-overlay { padding: 0; align-items: flex-end; }
+  .tm-modal { width: 100%; max-width: 100%; max-height: 90vh; overflow-y: auto; border-radius: 16px 16px 0 0; }
+
+  /* Members modal — bottom sheet */
+  .tm-members-modal { width: 100%; max-width: 100%; border-radius: 16px 16px 0 0; max-height: 88vh; }
+
+  /* Form rows inside modals */
+  .tm-form-row { grid-template-columns: 1fr; gap: 10px; }
 }
 
 @media (max-width: 480px) {
-  .tm-header h1 { font-size: 20px; }
+  /* Header */
+  .tm-title { font-size: 18px; }
+  .tm-sub { font-size: 12px; }
   .tm-invite-btn, .tm-pending-btn { padding: 8px 12px; font-size: 12px; }
+
+  /* Project tabs */
+  .tm-project-card { min-width: 130px; padding: 8px 12px; }
+
+  /* Groups / list view */
+  .tm-member-row { padding: 10px 12px; }
+  .tm-member-avatar { width: 32px; height: 32px; font-size: 12px; }
+  .tm-member-name { font-size: 12px; }
+  .tm-member-email { font-size: 10.5px; }
+  .tm-group-header { padding: 10px 12px; }
+  .tm-group-name { font-size: 13px; }
+
+  /* Card grid — single column */
+  .tm-grid { grid-template-columns: 1fr; }
+  .tm-grid--narrow { grid-template-columns: 1fr; }
   .tm-card { padding: 14px; }
-  .tm-member-avatar { width: 36px; height: 36px; font-size: 14px; }
-  .tm-add-tabs { flex-direction: column; gap: 0; }
+
+  /* Add-member tabs — stack vertically */
+  .tm-add-tabs { flex-direction: column; gap: 0; border-radius: 8px 8px 0 0; }
   .tm-add-tab { border-bottom: 1px solid #e5e7eb; border-radius: 0; }
+  .tm-add-tab:first-child { border-radius: 8px 8px 0 0; }
   .tm-add-tab--active { background: #eef2ff; border-bottom-color: #6366f1; }
+
+  /* Members modal actions */
+  .tm-members-modal-actions { flex-wrap: wrap; gap: 8px; }
+  .tm-mm-btn { flex: 1; justify-content: center; font-size: 12px; padding: 7px 10px; }
 }
 
 /* ── Search bar (in header) ── */

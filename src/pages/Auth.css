@@ -184,28 +184,40 @@
 
 .auth-link a:hover { color: #4f46e5; }
 
-.back-home {
-  text-align: center;
-  margin-top: 16px;
-}
-
-.back-home-btn {
-  display: inline-block;
-  padding: 9px 20px;
+.auth-back-btn {
+  position: absolute;
+  top: 24px;
+  left: 28px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
+  background: #ffffff;
   color: #6b7280;
   font-size: 13px;
   font-weight: 600;
   text-decoration: none;
-  transition: all 0.2s;
-  background: #f9fafb;
+  font-family: inherit;
+  transition: all 0.18s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  z-index: 10;
 }
 
-.back-home-btn:hover {
-  background: #f3f4f6;
-  border-color: #d1d5db;
-  color: #374151;
+.auth-back-btn:hover {
+  background: #f5f3ff;
+  border-color: #c7d2fe;
+  color: #6366f1;
+  box-shadow: 0 2px 8px rgba(99,102,241,0.12);
+}
+
+.auth-back-btn svg {
+  transition: transform 0.18s;
+}
+
+.auth-back-btn:hover svg {
+  transform: translateX(-2px);
 }
 
 /* ── Responsive ── */
@@ -234,5 +246,11 @@
   .auth-container::before,
   .auth-container::after {
     display: none;
+  }
+  .auth-back-btn {
+    top: 16px;
+    left: 16px;
+    padding: 6px 12px;
+    font-size: 12px;
   }
 }

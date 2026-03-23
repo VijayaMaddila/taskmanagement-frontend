@@ -52,10 +52,7 @@ function Dashboard() {
           setStats(statsData);
         }
 
-        // Filter to workspace projects only (created by this admin)
-        const myProjects = allProjects.filter(
-          (p) => String(p.createdById) === String(user.id)
-        );
+        const myProjects = allProjects;
 
         // Load tasks for each workspace project
         const taskLists = await Promise.all(

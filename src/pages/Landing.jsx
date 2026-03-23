@@ -75,17 +75,7 @@ function Landing() {
             Start for free
           </button>
           <button onClick={() => navigate("/login")} className="cta-secondary">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <circle
-                cx="8"
-                cy="8"
-                r="7"
-                stroke="currentColor"
-                strokeWidth="1.2"
-              />
-              <path d="M6 5.5l4 2.5-4 2.5V5.5z" fill="currentColor" />
-            </svg>
-            Watch demo
+            Sign in
           </button>
         </div>
         {/* App mockup */}

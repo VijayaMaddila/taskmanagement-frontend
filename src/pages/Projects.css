@@ -400,12 +400,6 @@
 .btn-secondary:hover { background: #f3f4f6; color: #374151; }
 .modal-actions .btn-primary { flex: 1; }
 
-@media (max-width: 768px) {
-  .projects-body { padding: calc(56px + 16px) 16px 16px; }
-  .projects-grid { grid-template-columns: 1fr; }
-  .form-row { grid-template-columns: 1fr; }
-}
-
 /* ── Member assignment ── */
 .member-list {
   display: flex;
@@ -507,6 +501,31 @@
   font-size: 12px;
   color: #d1d5db;
   font-style: italic;
+}
+
+.pj-no-members-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pj-assign-team-btn {
+  padding: 4px 10px;
+  font-size: 11.5px;
+  font-weight: 600;
+  font-family: inherit;
+  color: #6366f1;
+  background: #f5f3ff;
+  border: 1px solid #c7d2fe;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.pj-assign-team-btn:hover {
+  background: #6366f1;
+  color: #fff;
+  border-color: #6366f1;
 }
 
 .members-avatars {
@@ -1073,27 +1092,72 @@
 }
 
 /* ── Responsive ── */
+@media (max-width: 1024px) {
+  .projects-body { padding: calc(56px + 24px) 24px 24px; }
+  .projects-grid { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+}
+
 @media (max-width: 768px) {
+  /* Layout */
   .projects-body { padding: calc(56px + 16px) 16px 16px; }
+
+  /* Header — title row, then search below, then actions row */
+  .projects-header { flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
+  .pj-header-left { flex: 1 1 100%; }
+  .pj-search-wrap { order: 3; max-width: 100%; flex: 1 1 100%; }
+  .header-actions { margin-left: 0; width: 100%; justify-content: space-between; }
+  .pj-view-toggle { flex: 1; }
+  .pj-view-toggle button { flex: 1; justify-content: center; }
+
+  /* Grid */
   .projects-grid { grid-template-columns: 1fr; }
-  .form-row { grid-template-columns: 1fr; }
+
+  /* List view columns */
   .pj-list-header { grid-template-columns: 1.5fr 1fr 80px; }
   .pj-list-row { grid-template-columns: 1.5fr 1fr 80px; }
-  .pj-list-header span:nth-child(n+3):not(:last-child),
-  .pj-list-row span:nth-child(n+3):not(:last-child) { display: none; }
-  .modal-content { max-width: calc(100vw - 32px); padding: 20px 16px; }
+  .pj-list-header span:nth-child(n+4):not(:last-child),
+  .pj-list-row span:nth-child(n+4):not(:last-child) { display: none; }
+
+  /* Modal */
+  .modal-content { max-width: calc(100vw - 32px); padding: 20px 16px; max-height: 92vh; overflow-y: auto; }
+  .form-row { grid-template-columns: 1fr; }
+
+  /* Step 2 add-team panel */
+  .pj-add-team { max-height: 60vh; overflow-y: auto; }
 }
 
 @media (max-width: 480px) {
-  .projects-header { flex-direction: column; align-items: flex-start; gap: 12px; }
-  .header-actions { width: 100%; justify-content: space-between; }
+  /* Layout */
+  .projects-body { padding: calc(56px + 12px) 12px 12px; }
+
+  /* Header */
+  .projects-header h1 { font-size: 20px; }
+  .pj-sort-select { font-size: 12px; padding: 0 8px; max-width: 100px; }
   .btn-primary { padding: 9px 14px; font-size: 12px; }
-  .pj-task-stats { grid-template-columns: repeat(2, 1fr); }
-  .pj-list-header { grid-template-columns: 1fr 80px; }
+
+  /* Card */
+  .project-card { border-radius: 10px; }
+  .pj-card-body { padding: 12px 14px; }
+  .pj-task-stats { grid-template-columns: repeat(2, 1fr); gap: 6px; }
+  .pj-members-header { flex-wrap: wrap; gap: 4px; }
+
+  /* List view */
+  .pj-list-header { grid-template-columns: 1fr 80px; padding: 8px 12px; }
   .pj-list-row { grid-template-columns: 1fr 80px; }
   .pj-list-header span:nth-child(n+2):not(:last-child),
   .pj-list-row span:nth-child(n+2):not(:last-child) { display: none; }
-  .modal-content { padding: 16px 12px; border-radius: 12px; }
+
+  /* Modal */
+  .modal-content { padding: 16px 12px; border-radius: 14px 14px 0 0; }
+  .modal-overlay { align-items: flex-end; }
+
+  /* Step indicator */
+  .pj-steps { gap: 4px; font-size: 12px; padding: 12px 12px 0; }
+  .pj-step-num { width: 20px; height: 20px; font-size: 11px; }
+
+  /* Step 2 tabs */
+  .pj-team-tabs { gap: 0; }
+  .pj-team-tab { padding: 8px 12px; font-size: 12px; }
 }
 
 /* ── Search bar ── */
@@ -1151,13 +1215,3 @@
   padding: 0;
 }
 .pj-search-clear:hover { background: #d1d5db; color: #111827; }
-
-@media (max-width: 768px) {
-  .projects-header { flex-wrap: wrap; }
-  .pj-search-wrap { max-width: 100%; order: 3; flex: 1 1 100%; }
-  .header-actions { margin-left: 0; }
-}
-
-@media (max-width: 480px) {
-  .pj-header-left { flex: 1; }
-}

@@ -131,6 +131,13 @@ function Login() {
 
   return (
     <div className="auth-container">
+      <Link to="/" className="auth-back-btn">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M10 3L5 8l5 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+        Home
+      </Link>
+
       <div className="auth-card">
         <div className="auth-logo">
           <svg width="32" height="32" viewBox="0 0 28 28" fill="none">
@@ -194,10 +201,6 @@ function Login() {
         <p className="auth-link">
           Don't have an account? <Link to="/register">Register here</Link>
         </p>
-
-        <div className="back-home">
-          <Link to="/" className="back-home-btn">← Back to Home</Link>
-        </div>
       </div>
     </div>
   );

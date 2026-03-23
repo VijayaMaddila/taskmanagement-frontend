@@ -5,7 +5,6 @@ import { canManageProjects, hasRole } from "../utils/auth";
 import Sidebar from "../components/Sidebar";
 import "./Backlog.css";
 
-// Read the stored user from localStorage
 function getStoredUser() {
   try {
     return JSON.parse(localStorage.getItem("user")) || {};
@@ -92,18 +91,18 @@ export default function Backlog() {
         let myProjects;
         if (isAdmin) {
           myProjects = allProjects.filter(
-            (p) => String(p.createdById) === String(currentUser.id)
+            (p) => String(p.createdById) === String(currentUser.id),
           );
         } else {
           const memberLists = await Promise.all(
             allProjects.map((p) =>
-              fetchAll(`/api/projects/${p.id}/members`).catch(() => [])
-            )
+              fetchAll(`/api/projects/${p.id}/members`).catch(() => []),
+            ),
           );
           myProjects = allProjects.filter((_, i) =>
             memberLists[i].some(
-              (m) => String(m.userId ?? m.user?.id) === String(currentUser.id)
-            )
+              (m) => String(m.userId ?? m.user?.id) === String(currentUser.id),
+            ),
           );
         }
 
@@ -116,10 +115,10 @@ export default function Backlog() {
                   ...t,
                   projectId: t.projectId ?? p.id,
                   projectName: t.projectName ?? p.name,
-                }))
+                })),
               )
-              .catch(() => [])
-          )
+              .catch(() => []),
+          ),
         );
 
         setTasks(taskLists.flat());
