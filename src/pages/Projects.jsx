@@ -955,6 +955,9 @@ function Projects() {
                     {pendingMembers.map((m, i) => (
                       <div key={i} className="pj-pending-row">
                         <div className="pj-pending-info">
+                          <span className="pj-pending-avatar">
+                            {m._display?.slice(0,2).toUpperCase() || '?'}
+                          </span>
                           <span className="pj-pending-name">{m._display}</span>
                           <span className="pj-pending-role">{m.role}</span>
                           <span className="pj-pending-type">{m.email ? 'Invite' : 'Direct'}</span>
@@ -1089,6 +1092,9 @@ function Projects() {
                 {pendingMembers.map((m, i) => (
                   <div key={i} className="pj-pending-row">
                     <div className="pj-pending-info">
+                      <span className="pj-pending-avatar">
+                        {m._display?.slice(0,2).toUpperCase() || '?'}
+                      </span>
                       <span className="pj-pending-name">{m._display}</span>
                       <span className="pj-pending-role">{m.role}</span>
                       <span className="pj-pending-type">{m.email ? 'Invite' : 'Direct'}</span>

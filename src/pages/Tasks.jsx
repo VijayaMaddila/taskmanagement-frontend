@@ -24,18 +24,25 @@ function timeAgo(dateStr) {
   if (!dateStr) return "";
 
   const millisecondsDiff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(Math.abs(millisecondsDiff) / 60000);
   const daysDiff = Math.floor(millisecondsDiff / 86400000);
 
-  if (daysDiff === 0) return "Today";
-  if (daysDiff === 1) return "Yesterday";
-  if (daysDiff > 0 && daysDiff < 30) return `${daysDiff}d ago`;
-  if (daysDiff >= 30) return `${Math.floor(daysDiff / 30)}mo ago`;
-
-  // Future dates
-  const futureDays = Math.abs(daysDiff);
-  if (futureDays === 1) return "1d left";
-  if (futureDays < 30) return `${futureDays}d left`;
-  return `${Math.floor(futureDays / 30)}mo left`;
+  if (millisecondsDiff >= 0) {
+    // Past dates
+    if (mins < 1) return "just now";
+    if (mins < 60) return `${mins}m ago`;
+    if (daysDiff === 0) return `${Math.floor(mins / 60)}h ago`;
+    if (daysDiff === 1) return "Yesterday";
+    if (daysDiff < 30) return `${daysDiff}d ago`;
+    return `${Math.floor(daysDiff / 30)}mo ago`;
+  } else {
+    // Future dates
+    const futureDays = Math.abs(daysDiff);
+    if (futureDays === 0) return `${Math.floor(mins / 60)}h left`;
+    if (futureDays === 1) return "1d left";
+    if (futureDays < 30) return `${futureDays}d left`;
+    return `${Math.floor(futureDays / 30)}mo left`;
+  }
 }
 
 // The four Kanban columns
