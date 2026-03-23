@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { canManageProjects } from "../utils/auth";
-import { fetchAll } from "../utils/api";
+import { getDashboardStats } from "../services/dashboardService";
+import { getProjects } from "../services/projectService";
+import { getTasks } from "../services/taskService";
 import Sidebar from "../components/Sidebar";
 import "./Dashboard.css";
 
@@ -36,15 +38,12 @@ function Dashboard() {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const token = localStorage.getItem("token");
-  const authHeaders = { Authorization: `Bearer ${token}` };
-
   useEffect(() => {
     const loadDashboardData = async () => {
       try {
         const [statsResponse, allProjects] = await Promise.all([
-          fetch("http://localhost:8080/api/dashboard/stats", { headers: authHeaders }),
-          fetchAll("/api/projects"),
+          getDashboardStats(),
+          getProjects(),
         ]);
 
         if (statsResponse.ok) {
@@ -57,7 +56,7 @@ function Dashboard() {
         // Load tasks for each workspace project
         const taskLists = await Promise.all(
           myProjects.map((p) =>
-            fetchAll(`/api/tasks/project/${p.id}`)
+            getTasks(p.id)
               .then((tasks) =>
                 tasks.map((t) => ({
                   ...t,

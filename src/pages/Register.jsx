@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
+import { register, getInviteInfo } from "../services/authService";
 import "./Auth.css";
-
-const BASE_URL = "http://localhost:8080";
 
 function Register() {
   const [searchParams] = useSearchParams();
@@ -24,11 +23,7 @@ function Register() {
   useEffect(() => {
     if (!inviteToken) return;
 
-    const headers = {};
-    const existingToken = localStorage.getItem('token');
-    if (existingToken) headers['Authorization'] = `Bearer ${existingToken}`;
-
-    fetch(`${BASE_URL}/api/teams/invite/info?token=${encodeURIComponent(inviteToken)}`, { headers })
+    getInviteInfo(encodeURIComponent(inviteToken))
       .then(async (res) => {
         if (!res.ok) {
           const msg = await res.text().catch(() => "");
@@ -65,15 +60,7 @@ function Register() {
     try {
       // Pass the invite token as a query param so the backend creates the
       // team entry automatically during registration
-      const registerUrl = inviteToken
-        ? `${BASE_URL}/api/auth/register?token=${encodeURIComponent(inviteToken)}`
-        : `${BASE_URL}/api/auth/register`;
-
-      const response = await fetch(registerUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
+      const response = await register(formData, inviteToken ? encodeURIComponent(inviteToken) : null);
 
       if (!response.ok) {
         const errorMessage = await response.text();

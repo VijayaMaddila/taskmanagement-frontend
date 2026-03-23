@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { fetchAll } from "../utils/api";
+import { getProjects, getProjectMembers } from "../services/projectService";
+import { getTasks } from "../services/taskService";
+import { getUsers } from "../services/userService";
 import { canManageProjects, hasRole } from "../utils/auth";
 import Sidebar from "../components/Sidebar";
 import "./Backlog.css";
@@ -83,8 +85,8 @@ export default function Backlog() {
       setLoading(true);
       try {
         const [allProjects, userList] = await Promise.all([
-          fetchAll("/api/projects"),
-          fetchAll("/api/users"),
+          getProjects(),
+          getUsers(),
         ]);
 
         // Filter to workspace projects only
@@ -96,7 +98,7 @@ export default function Backlog() {
         } else {
           const memberLists = await Promise.all(
             allProjects.map((p) =>
-              fetchAll(`/api/projects/${p.id}/members`).catch(() => []),
+              getProjectMembers(p.id).catch(() => []),
             ),
           );
           myProjects = allProjects.filter((_, i) =>
@@ -109,7 +111,7 @@ export default function Backlog() {
         // Load tasks only from workspace projects
         const taskLists = await Promise.all(
           myProjects.map((p) =>
-            fetchAll(`/api/tasks/project/${p.id}`)
+            getTasks(p.id)
               .then((tasks) =>
                 tasks.map((t) => ({
                   ...t,

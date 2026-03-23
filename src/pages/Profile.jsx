@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { apiGet, apiPut } from "../utils/api";
+import { getProfile, updateProfile, changePassword } from "../services/profileService";
 import { isAuthenticated } from "../utils/auth";
 import Sidebar from "../components/Sidebar";
 import "./Profile.css";
@@ -48,7 +48,7 @@ export default function Profile() {
   const [pwMsg, setPwMsg] = useState(null);
 
   useEffect(() => {
-    apiGet("/api/profile")
+    getProfile()
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (data) {
@@ -74,7 +74,7 @@ export default function Profile() {
     setProfileSaving(true);
     setProfileMsg(null);
     try {
-      const res = await apiPut("/api/profile", {
+      const res = await updateProfile({
         username: profileForm.username.trim(),
         email: profileForm.email.trim(),
       });
@@ -127,7 +127,7 @@ export default function Profile() {
     setPwSaving(true);
     setPwMsg(null);
     try {
-      const res = await apiPut("/api/profile/change-password", {
+      const res = await changePassword({
         currentPassword: pwForm.currentPassword,
         newPassword: pwForm.newPassword,
       });

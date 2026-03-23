@@ -3,7 +3,8 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { fetchAll, apiGet, apiPost, apiPut, apiDelete } from '../utils/api';
+import { getProjects, getProjectMembers } from "../services/projectService";
+import { getUsers, getUserById, createUser, updateUser, deleteUser } from "../services/userService";
 import { isAuthenticated, hasRole } from '../utils/auth';
 import Sidebar from '../components/Sidebar';
 import './UserManagement.css';
@@ -65,11 +66,11 @@ export default function UserManagement() {
     setLoading(true);
     try {
       const currentUser = getStoredUser();
-      const allProjects = await fetchAll('/api/projects');
+      const allProjects = await getProjects();
       const myProjects = allProjects.filter(p => String(p.createdById) === String(currentUser.id));
 
       const memberLists = await Promise.all(
-        myProjects.map(p => fetchAll(`/api/projects/${p.id}/members`).catch(() => []))
+        myProjects.map(p => getProjectMembers(p.id).catch(() => []))
       );
 
       // Deduplicate users by id across all project members
@@ -123,7 +124,7 @@ export default function UserManagement() {
     setShowModal(true);
 
     try {
-      const res = await apiGet(`/api/users/${userToEdit.id}`);
+      const res = await getUserById(userToEdit.id);
       const fresh = res.ok ? await res.json() : userToEdit;
       setEditingUser(fresh);
       setFormData({
@@ -177,9 +178,9 @@ export default function UserManagement() {
 
       let response;
       if (editingUser) {
-        response = await apiPut(`/api/users/${editingUser.id}`, payload);
+        response = await updateUser(editingUser.id, payload);
       } else {
-        response = await apiPost('/api/users', payload);
+        response = await createUser(payload);
       }
 
       if (response.ok) {
@@ -199,7 +200,7 @@ export default function UserManagement() {
   const handleDelete = async () => {
     if (!deleteTarget) return;
     try {
-      const response = await apiDelete(`/api/users/${deleteTarget.id}`);
+      const response = await deleteUser(deleteTarget.id);
       if (response.ok || response.status === 204) {
         loadUsers();
       }

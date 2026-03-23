@@ -1,7 +1,11 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { canManageProjects } from "../utils/auth";
-import { fetchAll, apiPost, apiPut, apiDelete } from "../utils/api";
+import { getTasks, createTask, updateTask, deleteTask } from "../services/taskService";
+import { getComments, createComment, updateComment, deleteComment } from "../services/commentService";
+import { getActivity, logActivity as logActivityApi } from "../services/activityService";
+import { getProjects, getProjectMembers } from "../services/projectService";
+import { getUsers } from "../services/userService";
 import Sidebar from "../components/Sidebar";
 import ConfirmModal from "../components/ConfirmModal";
 import "./Tasks.css";
@@ -242,8 +246,8 @@ const [filterSearch, setFilterSearch] = useState("");
     setLoading(true);
     try {
       const [allProjects, userList] = await Promise.all([
-        fetchAll("/api/projects"),
-        fetchAll("/api/users"),
+        getProjects(),
+        getUsers(),
       ]);
 
       // Admins see all projects; members see only projects they belong to
@@ -251,7 +255,7 @@ const [filterSearch, setFilterSearch] = useState("");
       if (!canManage && user.id) {
         const memberLists = await Promise.all(
           allProjects.map((p) =>
-            fetchAll(`/api/projects/${p.id}/members`).catch(() => [])
+            getProjectMembers(p.id).catch(() => [])
           )
         );
         myProjects = allProjects.filter((_, i) =>
@@ -264,7 +268,7 @@ const [filterSearch, setFilterSearch] = useState("");
       // Load tasks only from the user's projects
       const taskLists = await Promise.all(
         myProjects.map((p) =>
-          fetchAll(`/api/tasks/project/${p.id}`)
+          getTasks(p.id)
             .then((tasks) => tasks.map((t) => ({ ...t, projectId: t.projectId ?? p.id, projectName: t.projectName ?? p.name })))
             .catch(() => [])
         )
@@ -286,19 +290,19 @@ const [filterSearch, setFilterSearch] = useState("");
 
   // Load activity logs for a specific task
   const fetchActivityLogs = (taskId) => {
-    fetchAll(`/api/activity/entity?entityType=TASK&entityId=${taskId}`)
+    getActivity("TASK", taskId)
       .then((logs) => setActivityLogs(logs))
       .catch(() => {});
   };
 
   // Post an activity log entry to the backend
   const logActivity = (taskId, action, extra = {}) => {
-    apiPost("/api/activity", {
+    logActivityApi({
       userId: Number(user.id),
-      action: action,
+      action,
       entityType: "TASK",
       entityId: taskId,
-      taskId: taskId,
+      taskId,
       ...extra,
     }).catch(() => {});
   };
@@ -336,7 +340,7 @@ const [filterSearch, setFilterSearch] = useState("");
     setActivityLogs([]);
     setShowDrawer(true);
 
-    fetchAll(`/api/comments/task/${task.id}`)
+    getComments(task.id)
       .then((commentList) => setComments(commentList))
       .catch(() => {});
 
@@ -358,7 +362,7 @@ const [filterSearch, setFilterSearch] = useState("");
   };
 
   const fetchComments = (taskId) => {
-    fetchAll(`/api/comments/task/${taskId}`)
+    getComments(taskId)
       .then((commentList) => setComments(commentList))
       .catch(() => {});
   };
@@ -367,7 +371,7 @@ const [filterSearch, setFilterSearch] = useState("");
     if (!comment.trim() || !drawerTask) return;
 
     try {
-      const response = await apiPost("/api/comments", {
+      const response = await createComment({
         content: comment.trim(),
         taskId: drawerTask.id,
         userId: user.id,
@@ -387,7 +391,7 @@ const [filterSearch, setFilterSearch] = useState("");
     if (!editingComment?.content?.trim()) return;
 
     try {
-      const response = await apiPut(`/api/comments/${commentId}`, {
+      const response = await updateComment(commentId, {
         content: editingComment.content,
       });
 
@@ -403,7 +407,7 @@ const [filterSearch, setFilterSearch] = useState("");
 
   const handleCommentDelete = async (commentId) => {
     try {
-      const response = await apiDelete(`/api/comments/${commentId}`);
+      const response = await deleteComment(commentId);
 
       if (response.ok || response.status === 204) {
         logActivity(drawerTask.id, "COMMENT_DELETED");
@@ -439,9 +443,9 @@ const [filterSearch, setFilterSearch] = useState("");
     try {
       let response;
       if (editingTask) {
-        response = await apiPut(`/api/tasks/${editingTask.id}`, payload);
+        response = await updateTask(editingTask.id, payload);
       } else {
-        response = await apiPost("/api/tasks", payload);
+        response = await createTask(payload);
       }
 
       if (response.ok) {
@@ -482,7 +486,7 @@ const [filterSearch, setFilterSearch] = useState("");
     }
 
     try {
-      const response = await apiPut(`/api/tasks/${editingTask.id}`, payload);
+      const response = await updateTask(editingTask.id, payload);
 
       if (response.ok) {
         logActivity(editingTask.id, "TASK_UPDATED");
@@ -498,7 +502,7 @@ const [filterSearch, setFilterSearch] = useState("");
     const taskId = deleteTarget;
     setDeleteTarget(null);
     try {
-      const response = await apiDelete(`/api/tasks/${taskId}`);
+      const response = await deleteTask(taskId);
 
       if (response.ok || response.status === 204) {
         logActivity(taskId, "TASK_DELETED");
@@ -521,7 +525,7 @@ const [filterSearch, setFilterSearch] = useState("");
     }
 
     try {
-      await apiPut(`/api/tasks/${taskId}`, {
+      await updateTask(taskId, {
         ...task,
         status: newStatus,
         assignedToId: task.assignedToId ?? null,
@@ -569,7 +573,7 @@ const [filterSearch, setFilterSearch] = useState("");
   const loadProjectMembers = async (projectId) => {
     if (!projectId || projectMembersCache[projectId]) return;
     try {
-      const members = await fetchAll(`/api/projects/${projectId}/members`);
+      const members = await getProjectMembers(projectId);
       const mapped = members.map(m => ({
         id:   m.user?.id   ?? m.userId,
         name: m.user?.username || m.user?.name || m.user?.email || `User #${m.user?.id ?? m.userId}`,

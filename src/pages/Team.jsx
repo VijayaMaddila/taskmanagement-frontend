@@ -1,6 +1,9 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { fetchAll, apiPost, apiPut, apiDelete } from "../utils/api";
+import { getProjects, getProjectMembers } from "../services/projectService";
+import { getTasks } from "../services/taskService";
+import { createTeam, addTeamMembers, removeTeamMember, sendInvite, declineInvite, getPendingInvitesByProject, getPendingInvitesByEmail, assignTeamToProject } from "../services/teamService";
+import { getUsers } from "../services/userService";
 import { hasRole } from "../utils/auth";
 import Sidebar from "../components/Sidebar";
 import ConfirmModal from "../components/ConfirmModal";
@@ -94,7 +97,7 @@ export default function Team() {
     const allTeams = (
       await Promise.all(
         projectList.map((proj) =>
-          fetchAll(`/api/projects/${proj.id}/members`)
+          getProjectMembers(proj.id)
             .then((members) =>
               members
                 .filter((m) => m.role !== "ADMIN")
@@ -118,7 +121,7 @@ export default function Team() {
     try {
       const perProject = await Promise.all(
         projectList.map((proj) =>
-          fetchAll(`/api/tasks/project/${proj.id}`)
+          getTasks(proj.id)
             .then((tasks) =>
               tasks.map((t) => ({
                 ...t,
@@ -148,8 +151,8 @@ export default function Team() {
       setLoading(true);
       try {
         const [u, p] = await Promise.all([
-          fetchAll("/api/users"),
-          fetchAll("/api/projects"),
+          getUsers(),
+          getProjects(),
         ]);
         setUsers(u);
         setProjects(p);
@@ -165,7 +168,7 @@ export default function Team() {
     const membershipId = deleteTarget;
     setDeleteTarget(null);
     try {
-      const res = await apiDelete(`/api/teams/members/${membershipId}`);
+      const res = await removeTeamMember(membershipId);
       if (res.ok) {
         setAllTeamMembers((prev) => prev.filter((m) => m.id !== membershipId));
       }
@@ -232,7 +235,7 @@ export default function Team() {
     try {
       const body = { email: inviteForm.email.trim(), role: inviteForm.role };
       if (inviteForm.projectId) body.projectId = Number(inviteForm.projectId);
-      const res = await apiPost("/api/teams/invite/send", body);
+      const res = await sendInvite(body);
       if (res.ok) {
         setAddDone({ type: "invite", label: inviteForm.email.trim() });
       } else {
@@ -283,13 +286,11 @@ export default function Team() {
           (p) => String(p.id) === String(directForm.projectId),
         );
         if (String(project?.team?.id) !== String(teamId)) {
-          await apiPut(`/api/projects/${directForm.projectId}`, { teamId });
+          await assignTeamToProject(directForm.projectId, { teamId });
         }
       } else {
         // Create a new team and assign it to the project
-        const teamRes = await apiPost("/api/teams", {
-          name: directForm.newTeamName.trim(),
-        });
+        const teamRes = await createTeam({ name: directForm.newTeamName.trim() });
         if (!teamRes.ok) {
           setDirectError("Failed to create team.");
           setDirectSaving(false);
@@ -297,10 +298,10 @@ export default function Team() {
         }
         const teamData = await teamRes.json();
         teamId = teamData.id;
-        await apiPut(`/api/projects/${directForm.projectId}`, { teamId });
+        await assignTeamToProject(directForm.projectId, { teamId });
       }
 
-      const res = await apiPost(`/api/teams/${teamId}/members`, {
+      const res = await addTeamMembers(teamId, {
         userId: Number(directForm.userId),
         role: directForm.role,
       });
@@ -334,7 +335,7 @@ export default function Team() {
     setPendingLoading(true);
     setPendingError("");
     try {
-      setPendingInvites(await fetchAll(`/api/teams/invites/project/${pid}`));
+      setPendingInvites(await getPendingInvitesByProject(pid));
     } catch {
       setPendingError("Failed to load pending invites.");
     }
@@ -349,11 +350,7 @@ export default function Team() {
     setPendingLoading(true);
     setPendingError("");
     try {
-      setPendingInvites(
-        await fetchAll(
-          `/api/teams/invites/user?email=${encodeURIComponent(email.trim())}`,
-        ),
-      );
+      setPendingInvites(await getPendingInvitesByEmail(email.trim()));
     } catch {
       setPendingError("Failed to load invites for this email.");
     }
@@ -372,10 +369,7 @@ export default function Team() {
 
   const handleDecline = async (token) => {
     try {
-      const res = await apiPost(
-        `/api/teams/invite/decline?token=${encodeURIComponent(token)}`,
-        {},
-      );
+      const res = await declineInvite(encodeURIComponent(token));
       if (res.ok)
         setPendingInvites((prev) => prev.filter((i) => i.token !== token));
     } catch {

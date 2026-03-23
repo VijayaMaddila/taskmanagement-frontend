@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { canManageProjects } from "../utils/auth";
-import { fetchAll, apiPost, apiPut, apiDelete } from "../utils/api";
+import { getProjects, createProject, updateProject, deleteProject, getProjectMembers } from "../services/projectService";
+import { createTeam, addTeamMembers, sendInvite, assignTeamToProject } from "../services/teamService";
+import { getUsers } from "../services/userService";
 import Sidebar from "../components/Sidebar";
 import ConfirmModal from "../components/ConfirmModal";
 import "./Projects.css";
@@ -87,7 +89,7 @@ function Projects() {
 
   const fetchProjects = async () => {
     try {
-      const list = await fetchAll('/api/projects');
+      const list = await getProjects();
       setProjects(list);
       fetchAllTeamMembers(list);
     } catch (e) {
@@ -101,7 +103,7 @@ function Projects() {
     const results = await Promise.all(
       projectList.map(async (p) => {
         try {
-          const members = await fetchAll(`/api/projects/${p.id}/members`);
+          const members = await getProjectMembers(p.id);
           return {
             id: p.id,
             members: members.map(m => ({
@@ -135,12 +137,12 @@ function Projects() {
 
     try {
       if (editingProject) {
-        const res = await apiPut(`/api/projects/${editingProject.id}`, payload);
+        const res = await updateProject(editingProject.id, payload);
         if (res.ok) { fetchProjects(); closeModal(); }
         else { const err = await res.text(); alert(`Error ${res.status}: ${err}`); }
       } else {
         // Step 1 for new project — just go to step 2, don't call API yet
-        fetchAll('/api/users').then(setAllUsers).catch(() => {});
+        getUsers().then(setAllUsers).catch(() => {});
         setPendingMembers([]);
         setMemberForm({ type: 'direct', userId: '', email: '', role: 'DEVELOPER' });
         setMemberFormError('');
@@ -188,7 +190,7 @@ function Projects() {
       const teamName = formData.teamName?.trim() || `${formData.name} Team`;
 
       // Step 1: Create the team (required before project)
-      const teamRes = await apiPost('/api/teams', { name: teamName });
+      const teamRes = await createTeam({ name: teamName });
       if (!teamRes.ok) {
         const err = await teamRes.text();
         alert(`Failed to create team (${teamRes.status}): ${err}`);
@@ -200,7 +202,7 @@ function Projects() {
 
       // Step 2: Add direct members to the team
       for (const m of directMembers) {
-        await apiPost(`/api/teams/${teamId}/members`, { userId: m.userId, role: m.role });
+        await addTeamMembers(teamId, { userId: m.userId, role: m.role });
       }
 
       // Step 3: Create the project linked to the new team
@@ -213,13 +215,13 @@ function Projects() {
         slackWebhookUrl: formData.slackWebhookUrl || null,
         teamId,
       };
-      const res = await apiPost('/api/projects', payload);
+      const res = await createProject(payload);
       if (res.ok) {
         // Step 4: Send email invites now that we have a projectId
         if (inviteMembers.length > 0) {
           const projectData = await res.json();
           for (const m of inviteMembers) {
-            await apiPost('/api/teams/invite/send', { projectId: projectData.id, email: m.email, role: m.role });
+            await sendInvite({ projectId: projectData.id, email: m.email, role: m.role });
           }
         }
         fetchProjects();
@@ -237,7 +239,7 @@ function Projects() {
     setDeleteTarget(null);
 
     try {
-      const res = await apiDelete(`/api/projects/${id}`);
+      const res = await deleteProject(id);
 
       if (res.ok || res.status === 204) {
         setProjects(prev => prev.filter(p => p.id !== id));
@@ -290,7 +292,7 @@ function Projects() {
     setMemberForm({ type: 'direct', userId: '', email: '', role: 'DEVELOPER' });
     setMemberFormError('');
     setAddTab('direct');
-    fetchAll('/api/users').then(setAllUsers).catch(() => {});
+    getUsers().then(setAllUsers).catch(() => {});
     setShowAssignModal(true);
   };
 
@@ -320,13 +322,13 @@ function Projects() {
 
       if (!teamId) {
         // Create a new team and link it to the project
-        const teamRes = await apiPost('/api/teams', { name: assignTeamName.trim() || `${assignProject.name} Team` });
+        const teamRes = await createTeam({ name: assignTeamName.trim() || `${assignProject.name} Team` });
         if (!teamRes.ok) { alert('Failed to create team'); setCreating(false); return; }
         const teamData = await teamRes.json();
         teamId = teamData.id;
 
         // Link team to project
-        await apiPut(`/api/projects/${assignProject.id}`, {
+        await assignTeamToProject(assignProject.id, {
           name: assignProject.name,
           description: assignProject.description || '',
           startDate: assignProject.startDate || null,
@@ -338,10 +340,10 @@ function Projects() {
       }
 
       for (const m of directMembers) {
-        await apiPost(`/api/teams/${teamId}/members`, { userId: m.userId, role: m.role });
+        await addTeamMembers(teamId, { userId: m.userId, role: m.role });
       }
       for (const m of inviteMembers) {
-        await apiPost('/api/teams/invite/send', { projectId: assignProject.id, email: m.email, role: m.role });
+        await sendInvite({ projectId: assignProject.id, email: m.email, role: m.role });
       }
 
       fetchProjects();

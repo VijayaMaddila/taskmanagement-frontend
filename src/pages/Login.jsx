@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { login } from "../services/authService";
 import "./Auth.css";
 
 // Decode a JWT token and return the payload object
@@ -52,13 +53,7 @@ function Login() {
     setError("");
 
     try {
-      const response = await fetch("http://localhost:8080/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      });
+      const response = await login(formData.email, formData.password);
 
       const responseText = await response.text();
 
