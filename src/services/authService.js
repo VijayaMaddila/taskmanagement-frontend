@@ -1,9 +1,9 @@
-const BASE_URL = 'http://localhost:8080';
+const BASE_URL = "https://taskmanagement-backend-61mw.onrender.com";
 
 export async function login(email, password) {
   return fetch(`${BASE_URL}/api/auth/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password }),
   });
 }
@@ -13,8 +13,8 @@ export async function register(body, inviteToken) {
     ? `${BASE_URL}/api/auth/register?token=${inviteToken}`
     : `${BASE_URL}/api/auth/register`;
   return fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
 }
